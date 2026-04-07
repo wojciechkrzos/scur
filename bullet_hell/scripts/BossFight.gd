@@ -69,6 +69,7 @@ func start_fight(config: Dictionary) -> void:
 	
 	boss.setup(boss_max_hp, PLAY_AREA_RECT, config.get("patterns", []))
 	player.setup(PLAY_AREA_RECT, player_bullet_container)
+	boss.player_ref = player
 	hud.setup(win_condition, time_limit, boss_max_hp)
 	_draw_play_area()
 
