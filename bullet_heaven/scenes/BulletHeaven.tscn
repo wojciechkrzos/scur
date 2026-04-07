@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://bullet_heaven/scripts/BulletHeaven.gd" id="1_0h1"]
+[ext_resource type="Script" path="res://bullet_heaven/scripts/BHPlayer.gd" id="2_0h2"]
+[ext_resource type="Script" path="res://bullet_heaven/scripts/BHHUD.gd" id="3_0h3"]
+[ext_resource type="Script" path="res://bullet_heaven/scripts/BHBackdrop.gd" id="4_0h4"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_0h1"]
+radius = 7.0
+
+[node name="BulletHeaven" type="Node2D"]
+script = ExtResource("1_0h1")
+
+[node name="Backdrop" type="Node2D" parent="."]
+script = ExtResource("4_0h4")
+
+[node name="EnemyContainer" type="Node2D" parent="."]
+
+[node name="BulletContainer" type="Node2D" parent="."]
+
+[node name="Player" type="Area2D" parent="."]
+script = ExtResource("2_0h2")
+
+[node name="PlayerCollision" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_0h1")
+
+[node name="PlayerSprite" type="ColorRect" parent="Player"]
+offset_left = -9.0
+offset_top = -9.0
+offset_right = 9.0
+offset_bottom = 9.0
+color = Color(0.3, 0.95, 0.45, 1)
+
+[node name="ShootTimer" type="Timer" parent="Player"]
+wait_time = 0.2
+autostart = true
+
+[node name="InvincibilityTimer" type="Timer" parent="Player"]
+one_shot = true
+
+[node name="SpawnTimer" type="Timer" parent="."]
+wait_time = 0.6
+autostart = false
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_0h3")
+
+[node name="LivesLabel" type="Label" parent="HUD"]
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 120.0
+offset_bottom = 34.0
+text = "Lives: ♥ ♥ ♥"
+
+[node name="KillsLabel" type="Label" parent="HUD"]
+offset_left = 12.0
+offset_top = 30.0
+offset_right = 120.0
+offset_bottom = 54.0
+text = "Kills: 0000"
+
+[node name="TimerLabel" type="Label" parent="HUD"]
+offset_left = 12.0
+offset_top = 50.0
+offset_right = 120.0
+offset_bottom = 74.0
+text = "Time: 35.0"
+
+[node name="PatternLabel" type="Label" parent="HUD"]
+offset_left = 12.0
+offset_top = 70.0
+offset_right = 200.0
+offset_bottom = 94.0
+text = "Pattern: AIMED FAN"
+
+[node name="ResultLabel" type="Label" parent="HUD"]
+visible = false
+offset_left = 120.0
+offset_top = 250.0
+offset_right = 360.0
+offset_bottom = 286.0
+text = "WAVE CLEAR"
+horizontal_alignment = 1
+vertical_alignment = 1
