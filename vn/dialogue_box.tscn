@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://brrqc17asskuh"]
+
+[ext_resource type="Script" uid="uid://cppotxo31l4mv" path="res://vn/dialogue_box.gd" id="1_2ix3t"]
+
+[node name="DialogueBox" type="CanvasLayer" unique_id=788235638]
+script = ExtResource("1_2ix3t")
+
+[node name="Root" type="Control" parent="." unique_id=308760876]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Root" unique_id=1270029070]
+custom_minimum_size = Vector2(800, 180)
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -180.0
+offset_right = 40.0
+grow_vertical = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Root/Panel" unique_id=983272876]
+layout_mode = 2
+
+[node name="Portrait" type="TextureRect" parent="Root/Panel/HBoxContainer" unique_id=64848504]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/Panel/HBoxContainer" unique_id=616651268]
+layout_mode = 2
+
+[node name="SpeakerName" type="Label" parent="Root/Panel/HBoxContainer/VBoxContainer" unique_id=1635821083]
+layout_mode = 2
+
+[node name="DialogueText" type="RichTextLabel" parent="Root/Panel/HBoxContainer/VBoxContainer" unique_id=371361286]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+
+[node name="ChoicesContainer" type="VBoxContainer" parent="Root/Panel/HBoxContainer/VBoxContainer" unique_id=1895988590]
+layout_mode = 2
