@@ -1,0 +1,134 @@
+[gd_scene format=3 uid="uid://dg2hw8gx0tvfn"]
+
+[ext_resource type="Script" uid="uid://djodblfy4an8x" path="res://bullet_hell/scripts/BossFight.gd" id="1_6dyyv"]
+[ext_resource type="Script" uid="uid://bere34i07cfke" path="res://bullet_hell/scripts/Boss.gd" id="2_4yc0g"]
+[ext_resource type="Script" uid="uid://buds1hc7l56ao" path="res://bullet_hell/scripts/Player.gd" id="3_dcc1e"]
+[ext_resource type="Script" uid="uid://4s6qqe13flp4" path="res://bullet_hell/scripts/HUD.gd" id="4_sakb4"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lowkq"]
+size = Vector2(25, 25)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jvq6q"]
+size = Vector2(4, 4)
+
+[node name="BossFight" type="Node2D" unique_id=1581644887]
+script = ExtResource("1_6dyyv")
+
+[node name="BulletContainer" type="Node2D" parent="." unique_id=1497987142]
+
+[node name="PlayerBulletContainer" type="Node2D" parent="." unique_id=1997813769]
+
+[node name="Boss" type="Area2D" parent="." unique_id=585429913]
+script = ExtResource("2_4yc0g")
+
+[node name="BossCollision" type="CollisionShape2D" parent="Boss" unique_id=1968190513]
+position = Vector2(-12, -12)
+shape = SubResource("RectangleShape2D_lowkq")
+debug_color = Color(1, 1, 1, 1)
+
+[node name="BossSprite" type="ColorRect" parent="Boss" unique_id=2056259637]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.76115644, 0, 0.30661315, 1)
+
+[node name="BossHP" type="ProgressBar" parent="Boss" unique_id=601183865]
+offset_left = -50.0
+offset_top = -45.0
+offset_right = 50.0
+offset_bottom = -18.0
+
+[node name="ShootTimer" type="Timer" parent="Boss" unique_id=736794411]
+wait_time = 0.05
+autostart = true
+
+[node name="PatternTimer" type="Timer" parent="Boss" unique_id=1865461938]
+wait_time = 3.0
+autostart = true
+
+[node name="BossHitboxVisual" type="ColorRect" parent="Boss" unique_id=1853294313]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 13.0
+offset_bottom = 13.0
+
+[node name="Player" type="Area2D" parent="." unique_id=489216337]
+script = ExtResource("3_dcc1e")
+
+[node name="PlayerCollision" type="CollisionShape2D" parent="Player" unique_id=188140919]
+position = Vector2(10, 10)
+shape = SubResource("RectangleShape2D_jvq6q")
+debug_color = Color(0.654902, 0.003921569, 0.96862745, 0.70980394)
+
+[node name="HitboxSprite" type="ColorRect" parent="Player" unique_id=495439396]
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.8785174, 0.0006328231, 0.8809489, 1)
+
+[node name="FocusIndicator" type="ColorRect" parent="Player" unique_id=966119912]
+custom_minimum_size = Vector2(24, 24)
+offset_right = 30.0
+offset_bottom = 30.0
+color = Color(1, 1, 1, 0.09803922)
+
+[node name="ShootTimer" type="Timer" parent="Player" unique_id=1848634855]
+wait_time = 0.12
+autostart = true
+
+[node name="InvincibilityTimer" type="Timer" parent="Player" unique_id=117979467]
+one_shot = true
+
+[node name="PlayerHitboxVisual" type="ColorRect" parent="Player" unique_id=2009377142]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 14.0
+offset_bottom = 14.0
+color = Color(0, 0.5527905, 0.5527904, 1)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1954525983]
+script = ExtResource("4_sakb4")
+
+[node name="LivesLabel" type="Label" parent="HUD" unique_id=2077584508]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 67.0
+offset_bottom = 33.0
+text = "Lives: 3"
+
+[node name="ScoreLabel" type="Label" parent="HUD" unique_id=956268702]
+offset_left = 10.0
+offset_top = 30.0
+offset_right = 71.0
+offset_bottom = 53.0
+text = "Score: 0"
+
+[node name="TimerLabel" type="Label" parent="HUD" unique_id=940434938]
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 50.0
+offset_bottom = 73.0
+text = "Time: 30"
+
+[node name="BossHPLabel" type="Label" parent="HUD" unique_id=602615661]
+offset_left = 80.0
+offset_top = 28.0
+offset_right = 120.0
+offset_bottom = 51.0
+text = "BOSS HP"
+
+[node name="WinLabel" type="Label" parent="HUD" unique_id=1925111805]
+visible = false
+offset_left = 100.0
+offset_top = 250.0
+offset_right = 240.0
+offset_bottom = 273.0
+text = "✦ DERATYZACJA ✦"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BossHPBar" type="ProgressBar" parent="HUD" unique_id=871340437]
+offset_left = 80.0
+offset_top = 10.0
+offset_right = 400.0
+offset_bottom = 37.0

@@ -1,0 +1,157 @@
+extends CanvasLayer
+
+signal dialogue_started
+signal dialogue_finished(result)
+
+@onready var root: Control = $Root
+@onready var panel: PanelContainer = $Root/Panel
+@onready var portrait: TextureRect = $Root/Panel/HBoxContainer/Portrait
+@onready var speaker_name: Label = $Root/Panel/HBoxContainer/VBoxContainer/SpeakerName
+@onready var dialogue_text: RichTextLabel = $Root/Panel/HBoxContainer/VBoxContainer/DialogueText
+@onready var choices_container: VBoxContainer = $Root/Panel/HBoxContainer/VBoxContainer/ChoicesContainer
+
+@export var text_speed: float = 50.0
+
+var shake_effect: ShakeEffect
+
+var lines: Array = []
+var current_line_index: int = 0
+var current_text: String = ""
+var visible_characters_count: int = 0
+var visible_characters_progress: float = 0.0
+var is_typing: bool = false
+var current_speed: float = 0.0
+var current_effect: String = ""
+var last_choice_id: String = ""
+
+func _ready() -> void:
+	print("DialogueBox ready")
+	visible = false
+	set_process(false)
+	
+	dialogue_text.bbcode_enabled = true
+
+	shake_effect = ShakeEffect.new()
+	dialogue_text.install_effect(shake_effect)
+
+func start_dialogue(dialogue_lines: Array) -> void:
+	print("start_dialogue called")
+
+	if dialogue_lines.is_empty():
+		return
+
+	lines = dialogue_lines
+	current_line_index = 0
+
+	visible = true
+	dialogue_started.emit()
+
+	_show_current_line()
+	set_process(true)
+
+func _process(delta: float) -> void:
+	if not is_typing:
+		return
+
+	visible_characters_progress += current_speed * delta
+	visible_characters_count = int(visible_characters_progress)
+	dialogue_text.visible_characters = visible_characters_count
+
+	if visible_characters_count >= current_text.length():
+		_finish_typing()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+
+	if event.is_action_pressed("ui_accept"):
+		if is_typing:
+			_show_full_text()
+		elif choices_container.get_child_count() == 0:
+			_go_to_next_line()
+			get_viewport().set_input_as_handled()
+
+#pomocnicza metoda
+#func _get_shake_effect() -> ShakeEffect:
+	#for child in dialogue_text.get_children():
+		#if child is ShakeEffect:
+			#return child as ShakeEffect   # <-- DODAJ "as ShakeEffect"
+	#return null
+
+func _show_current_line() -> void:
+	_clear_choices()
+	
+	if current_line_index >= lines.size():
+		_end_dialogue()
+		return
+	
+	var line: Dictionary = lines[current_line_index]
+	speaker_name.text = line.get("speaker", "")
+	current_text = line.get("text", "")
+	current_speed = line.get("speed", text_speed)
+	current_effect = line.get("effect", "")
+	
+	if current_effect == "shake":
+		dialogue_text.text = "[shake]" + current_text + "[/shake]"
+	else:
+		dialogue_text.text = current_text
+	dialogue_text.visible_characters = 0
+	
+	var portrait_texture = line.get("portrait", null)
+	portrait.texture = portrait_texture
+	portrait.visible = portrait_texture != null
+	
+	visible_characters_count = 0
+	visible_characters_progress = 0.0
+	is_typing = true
+
+func _finish_typing() -> void:
+	is_typing = false
+	dialogue_text.visible_characters = -1
+
+	var line: Dictionary = lines[current_line_index]
+	var choices: Array = line.get("choices", [])
+
+	if not choices.is_empty():
+		_show_choices(choices)
+
+func _show_full_text() -> void:
+	visible_characters_count = current_text.length()
+	visible_characters_progress = float(visible_characters_count)
+	_finish_typing()
+
+func _go_to_next_line() -> void:
+	current_line_index += 1
+	_show_current_line()
+
+func _show_choices(choices: Array) -> void:
+	for choice_data in choices:
+		var button := Button.new()
+		button.text = str(choice_data.get("text", "Wybór"))
+		button.pressed.connect(_on_choice_selected.bind(choice_data))
+		choices_container.add_child(button)
+
+func _on_choice_selected(choice_data: Dictionary) -> void:
+	last_choice_id = str(choice_data.get("id", ""))
+	if choice_data.has("jump_to"):
+		current_line_index = int(choice_data["jump_to"])
+		_show_current_line()
+		return
+
+	if choice_data.get("end_dialogue", false):
+		_end_dialogue()
+		return
+
+	_go_to_next_line()
+
+func _clear_choices() -> void:
+	for child in choices_container.get_children():
+		child.queue_free()
+
+func _end_dialogue() -> void:
+	visible = false
+	set_process(false)
+	_clear_choices()
+	dialogue_finished.emit({
+		"choice": last_choice_id
+	})
