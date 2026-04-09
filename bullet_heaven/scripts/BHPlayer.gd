@@ -9,21 +9,13 @@ const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 
-enum FirePattern {
-	AIMED_FAN,
-	RADIAL_RING,
-	AOE_PULSE,
-	VERTICAL_JET,
-	SPIRAL_STREAM,
-}
-
 const BASE_SPEED := 230.0
 const BASE_MAX_LIVES := 3
 const BASE_SHOOT_INTERVAL := 0.8
+const MAX_PLAYER_SPEED := 420.0
 
 @export var speed: float = 230.0
 @export var max_lives: int = 3
-@export var pattern_switch_interval: float = 10.0
 
 var lives: int = 3
 var experience_points: int = 0
@@ -35,6 +27,7 @@ var fight_active: bool = true
 var play_area: Rect2
 var bullet_container: Node2D
 var active_weapons: Array[int] = []
+var spiral_phase: float = 0.0
 var anchor_position: Vector2 = Vector2.ZERO
 
 const INVINCIBILITY_DURATION := 1.2
@@ -60,7 +53,8 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	collision_mask = 1 | 4
 	anchor_position = area.get_center()
 	position = anchor_position
-	active_weapons = [FirePattern.AOE_PULSE]
+	active_weapons = [BHPowerups.WeaponId.AOE_PULSE]
+	spiral_phase = 0.0
 	shoot_timer.wait_time = BASE_SHOOT_INTERVAL
 	_update_experience_ui()
 
@@ -84,53 +78,59 @@ func _shoot_burst() -> void:
 		_fire_weapon(weapon_id)
 
 func _fire_weapon(weapon_id: int) -> void:
-	match weapon_id:
-		FirePattern.AOE_PULSE:
-			_fire_aoe_pulse()
-		FirePattern.VERTICAL_JET:
-			_fire_vertical_jet()
-		FirePattern.SPIRAL_STREAM:
-			_fire_spiral_stream()
+	var weapon_data := BHPowerups.get_weapon_definition(weapon_id)
+	if weapon_data.is_empty():
+		return
+
+	match String(weapon_data.get("fire_mode", "")):
+		"aoe_pulse":
+			_fire_aoe_pulse(weapon_data)
+		"vertical_jet":
+			_fire_vertical_jet(weapon_data)
+		"spiral_stream":
+			_fire_spiral_stream(weapon_data)
 		_:
 			pass
 
-func _fire_aoe_pulse() -> void:
+func _fire_aoe_pulse(weapon_data: Dictionary) -> void:
 	var pulse = BHAoEPulseScript.new()
 	pulse.anchor_ref = self
-	pulse.damage = 1
+	pulse.damage = int(weapon_data.get("damage", 1))
+	pulse.lifetime = float(weapon_data.get("lifetime", pulse.lifetime))
 	pulse.position = position
 	pulse.add_to_group("bh_player_attack")
 	shot_spawned.emit(pulse)
 
-func _fire_vertical_jet() -> void:
-	var offsets := [-10.0, 0.0, 10.0]
-	for offset_x in offsets:
-		var shot = BHShotScript.new()
-		shot.position = position + Vector2(offset_x, 0.0)
-		shot.direction = Vector2.UP
-		shot.speed = 270.0
-		shot.damage = 1
-		shot.add_to_group("bh_player_bullet")
-		shot_spawned.emit(shot)
+func _fire_vertical_jet(weapon_data: Dictionary) -> void:
+	var offsets: Array = weapon_data.get("offsets", [0.0])
+	for raw_offset in offsets:
+		_spawn_bullet(
+			position + Vector2(float(raw_offset), 0.0),
+			Vector2.UP,
+			float(weapon_data.get("shot_speed", 250.0)),
+			int(weapon_data.get("damage", 1))
+		)
 
-func _fire_spiral_stream() -> void:
-	var count := 4
-	for i in count:
-		var angle := float(i) * 0.45
-		var shot = BHShotScript.new()
-		shot.position = position
-		shot.direction = Vector2.from_angle(angle)
-		shot.speed = 250.0
-		shot.damage = 1
-		shot.add_to_group("bh_player_bullet")
-		shot_spawned.emit(shot)
+func _fire_spiral_stream(weapon_data: Dictionary) -> void:
+	var shot_count := int(weapon_data.get("shot_count", 4))
+	var angle_step := float(weapon_data.get("angle_step", 0.45))
+	var phase_step := float(weapon_data.get("phase_step", 0.35))
+	for i in shot_count:
+		var angle := spiral_phase + float(i) * angle_step
+		_spawn_bullet(
+			position,
+			Vector2.from_angle(angle),
+			float(weapon_data.get("shot_speed", 250.0)),
+			int(weapon_data.get("damage", 1))
+		)
+	spiral_phase += phase_step
 
-func _spawn_shot(direction: Vector2, shot_speed: float) -> void:
+func _spawn_bullet(shot_position: Vector2, direction: Vector2, shot_speed: float, damage: int) -> void:
 	var shot = BHShotScript.new()
-	shot.position = position
+	shot.position = shot_position
 	shot.direction = direction
 	shot.speed = shot_speed
-	shot.damage = 1
+	shot.damage = damage
 	shot.add_to_group("bh_player_bullet")
 	shot_spawned.emit(shot)
 
@@ -168,18 +168,19 @@ func add_experience(amount: int) -> void:
 	_update_experience_ui()
 
 func apply_powerup(powerup_id: int) -> void:
-	match powerup_id:
-		BHPowerups.PowerupId.WEAPON_1:
-			_activate_weapon(FirePattern.AOE_PULSE)
-		BHPowerups.PowerupId.WEAPON_2:
-			_activate_weapon(FirePattern.VERTICAL_JET)
-		BHPowerups.PowerupId.WEAPON_3:
-			_activate_weapon(FirePattern.SPIRAL_STREAM)
-		BHPowerups.PowerupId.SPEEDUP:
-			speed = min(speed + 30.0, 420.0)
-		BHPowerups.PowerupId.SHIELD:
-			max_lives += 1
-			lives = min(lives + 1, max_lives)
+	var powerup_data := BHPowerups.get_powerup_data(powerup_id)
+	if powerup_data.is_empty():
+		return
+
+	match String(powerup_data.get("kind", "")):
+		"weapon":
+			_activate_weapon(int(powerup_data.get("weapon_id", -1)))
+		"speed":
+			speed = min(speed + float(powerup_data.get("value", 0.0)), MAX_PLAYER_SPEED)
+		"shield":
+			var extra_lives := int(powerup_data.get("value", 1))
+			max_lives += extra_lives
+			lives = min(lives + extra_lives, max_lives)
 		_:
 			pass
 
@@ -189,6 +190,8 @@ func get_owned_weapon_ids() -> Array[int]:
 	return active_weapons.duplicate()
 
 func _activate_weapon(weapon_id: int) -> void:
+	if weapon_id == -1:
+		return
 	if not active_weapons.has(weapon_id):
 		active_weapons.append(weapon_id)
 
@@ -201,13 +204,7 @@ func get_pattern_name() -> String:
 
 	var names: Array[String] = []
 	for weapon_id in active_weapons:
-		match weapon_id:
-			FirePattern.AOE_PULSE:
-				names.append("WEAPON 1")
-			FirePattern.VERTICAL_JET:
-				names.append("WEAPON 2")
-			FirePattern.SPIRAL_STREAM:
-				names.append("WEAPON 3")
+		names.append(BHPowerups.get_weapon_name(weapon_id))
 	return ", ".join(names)
 
 func get_move_input() -> Vector2:
