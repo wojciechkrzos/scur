@@ -2,11 +2,69 @@ extends Area2D
 
 signal died
 
-@export var speed: float = 85.0
-@export var xp_value: int = 1
+enum EnemyKind {
+	STANDARD,
+	TANK,
+	SWARM,
+}
 
-var hp: int = 1
+enum MovementMode {
+	HOMING,
+	LINE,
+}
+
+@export var enemy_kind: EnemyKind = EnemyKind.STANDARD
+@export var speed: float = 85.0
+@export var hp: int = 1
+@export var xp_value: int = 1
+@export var damage_flash_color: Color = Color(1.0, 0.95, 0.95, 1.0)
+@export var damage_flash_duration: float = 0.08
+
 var player_ref: Node2D
+var play_area: Rect2 = Rect2()
+var movement_mode: MovementMode = MovementMode.HOMING
+var move_direction: Vector2 = Vector2.ZERO
+var is_dying: bool = false
+var damage_flash_tween: Tween
+var damage_flash_overlay: ColorRect
+
+var body_color: Color = Color(0.9, 0.2, 0.2, 1.0)
+var body_size: Vector2 = Vector2(16, 16)
+var collision_radius: float = 8.0
+
+func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Vector2.ZERO) -> void:
+	enemy_kind = kind
+	player_ref = player
+	play_area = area
+	move_direction = direction.normalized() if direction != Vector2.ZERO else Vector2.ZERO
+	_apply_kind_stats()
+
+func _apply_kind_stats() -> void:
+	match enemy_kind:
+		EnemyKind.TANK:
+			speed = 55.0
+			hp = 6
+			xp_value = randi_range(2, 5)
+			movement_mode = MovementMode.HOMING
+			body_color = Color(0.9, 0.55, 0.15, 1.0)
+			body_size = Vector2(26, 26)
+			collision_radius = 11.5
+		EnemyKind.SWARM:
+			speed = 210.0
+			hp = 1
+			xp_value = 1
+			movement_mode = MovementMode.LINE
+			body_color = Color(0.95, 0.9, 0.25, 1.0)
+			body_size = Vector2(14, 14)
+			collision_radius = 6.0
+		_:
+			speed = 85.0
+			hp = 1
+			xp_value = 1
+			movement_mode = MovementMode.HOMING
+			body_color = Color(0.9, 0.2, 0.2, 1.0)
+			body_size = Vector2(16, 16)
+			collision_radius = 8.0
 
 func _ready() -> void:
 	collision_layer = 1
@@ -14,27 +72,106 @@ func _ready() -> void:
 
 	var col = CollisionShape2D.new()
 	var shape = CircleShape2D.new()
-	shape.radius = 8.0
+	shape.radius = collision_radius
 	col.shape = shape
 	add_child(col)
 
 	var vis = ColorRect.new()
-	vis.size = Vector2(16, 16)
-	vis.position = Vector2(-8, -8)
-	vis.color = Color(0.9, 0.2, 0.2, 1.0)
+	vis.size = body_size
+	vis.position = -body_size * 0.5
+	vis.color = body_color
 	add_child(vis)
 
-func _process(delta: float) -> void:
-	if player_ref == null:
-		return
-	var dir = (player_ref.global_position - global_position).normalized()
-	global_position += dir * speed * delta
+	damage_flash_overlay = ColorRect.new()
+	damage_flash_overlay.size = body_size
+	damage_flash_overlay.position = -body_size * 0.5
+	damage_flash_overlay.color = Color(1.0, 1.0, 1.0, 0.0)
+	damage_flash_overlay.z_index = 1000
+	damage_flash_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(damage_flash_overlay)
 
-	if global_position.distance_to(player_ref.global_position) > 1500.0:
-		queue_free()
+func _process(delta: float) -> void:
+	match movement_mode:
+		MovementMode.HOMING:
+			if player_ref == null:
+				return
+			var dir = (player_ref.global_position - global_position).normalized()
+			global_position += dir * speed * delta
+			if global_position.distance_to(player_ref.global_position) > 1500.0:
+				queue_free()
+		MovementMode.LINE:
+			global_position += move_direction * speed * delta
+			if _is_outside_play_area(140.0):
+				queue_free()
+
+func _is_outside_play_area(margin: float) -> bool:
+	if play_area.size == Vector2.ZERO:
+		return false
+	return (
+		global_position.x < play_area.position.x - margin
+		or global_position.x > play_area.end.x + margin
+		or global_position.y < play_area.position.y - margin
+		or global_position.y > play_area.end.y + margin
+	)
 
 func take_damage(amount: int) -> void:
+	if is_dying:
+		return
+
 	hp -= amount
+	_play_damage_flash()
 	if hp <= 0:
-		died.emit()
-		queue_free()
+		_die_with_flash()
+
+func _play_damage_flash() -> void:
+	if damage_flash_tween != null:
+		damage_flash_tween.kill()
+
+	if damage_flash_overlay != null:
+		damage_flash_overlay.modulate = Color(1.0, 1.0, 1.0, 0.0)
+
+	var flash_targets: Array[CanvasItem] = []
+	var flash_colors: Array[Color] = []
+	var restore_colors: Array[Color] = []
+	_collect_flash_targets(self, flash_targets, flash_colors, restore_colors)
+	if flash_targets.is_empty():
+		return
+
+	damage_flash_tween = create_tween()
+	damage_flash_tween.set_parallel(true)
+	for index in flash_targets.size():
+		damage_flash_tween.tween_property(flash_targets[index], "modulate", flash_colors[index], damage_flash_duration * 0.5)
+	if damage_flash_overlay != null:
+		damage_flash_tween.tween_property(damage_flash_overlay, "modulate", Color(1.0, 1.0, 1.0, 0.85), damage_flash_duration * 0.5)
+	damage_flash_tween.set_parallel(false)
+	for index in flash_targets.size():
+		damage_flash_tween.tween_property(flash_targets[index], "modulate", restore_colors[index], damage_flash_duration * 0.5)
+	if damage_flash_overlay != null:
+		damage_flash_tween.tween_property(damage_flash_overlay, "modulate", Color(1.0, 1.0, 1.0, 0.0), damage_flash_duration * 0.5)
+	damage_flash_tween.finished.connect(_on_damage_flash_finished)
+
+func _collect_flash_targets(node: Node, flash_targets: Array[CanvasItem], flash_colors: Array[Color], restore_colors: Array[Color]) -> void:
+	if node is CanvasItem and not (node is CollisionShape2D or node is CollisionPolygon2D):
+		var canvas_item := node as CanvasItem
+		flash_targets.append(canvas_item)
+		restore_colors.append(canvas_item.modulate)
+		flash_colors.append(damage_flash_color)
+
+	for child in node.get_children():
+		_collect_flash_targets(child, flash_targets, flash_colors, restore_colors)
+
+func _die_with_flash() -> void:
+	if is_dying:
+		return
+
+	is_dying = true
+	monitoring = false
+	monitorable = false
+	collision_layer = 0
+	collision_mask = 0
+	await get_tree().create_timer(damage_flash_duration).timeout
+	died.emit()
+	queue_free()
+
+func _on_damage_flash_finished() -> void:
+	damage_flash_tween = null
