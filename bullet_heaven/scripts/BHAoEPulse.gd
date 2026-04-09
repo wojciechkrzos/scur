@@ -1,7 +1,7 @@
 extends Area2D
 
 var damage: int = 1
-var lifetime: float = 0.22
+var lifetime: float = 0.32
 var anchor_ref: Node2D = null
 
 func get_damage() -> int:
@@ -13,13 +13,13 @@ func _ready() -> void:
 
 	var collision := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
-	shape.radius = 42.0
+	shape.radius = 54.0
 	collision.shape = shape
 	add_child(collision)
 
 	var pulse := ColorRect.new()
-	pulse.size = Vector2(84, 84)
-	pulse.position = Vector2(-42, -42)
+	pulse.size = Vector2(108, 108)
+	pulse.position = Vector2(-54, -54)
 	pulse.color = Color(0.55, 0.9, 1.0, 0.18)
 	add_child(pulse)
 

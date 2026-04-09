@@ -46,7 +46,23 @@ static func get_powerup_description(powerup_id: int) -> String:
 		_:
 			return ""
 
-static func get_random_choices(count: int) -> Array[int]:
+static func get_random_choices(count: int, excluded: Array[int] = []) -> Array[int]:
 	var options := POWERUP_ORDER.duplicate()
+	var fallback: Array[int] = []
+	for powerup_id in options:
+		if excluded.has(powerup_id):
+			fallback.append(powerup_id)
+		else:
+			fallback.append(powerup_id)
+
+	options = options.filter(func(powerup_id): return not excluded.has(powerup_id))
 	options.shuffle()
-	return options.slice(0, min(count, options.size()))
+	var picks: Array[int] = options.slice(0, min(count, options.size()))
+	if picks.size() < count:
+		fallback.shuffle()
+		for powerup_id in fallback:
+			if picks.size() >= count:
+				break
+			if not picks.has(powerup_id):
+				picks.append(powerup_id)
+	return picks

@@ -49,6 +49,7 @@ func start_fight() -> void:
 
 	player.setup(play_area_rect, bullet_container)
 	hud.setup(stage_duration, player.max_lives)
+	hud.update_pattern(player.get_pattern_name())
 	backdrop.setup(play_area_rect)
 	backdrop.set_scroll_offset(world_offset)
 	enemy_container.position = Vector2.ZERO
@@ -132,7 +133,7 @@ func _random_edge_position(rect: Rect2) -> Vector2:
 
 func _on_player_shot_spawned(shot: Node2D) -> void:
 	bullet_container.add_child(shot)
-	shot.global_position = player.global_position
+	shot.global_position = shot.position
 	shot.anchor_ref = player
 
 func _on_player_experience_changed(current_xp: int, current_level: int, xp_to_next: int) -> void:
@@ -199,7 +200,7 @@ func _spawn_xp_pellet(position: Vector2, xp_amount: int) -> void:
 
 func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
-		current_powerup_choices = BHPowerups.get_random_choices(3)
+		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
 
 	level_up_title.text = "LEVEL UP"
 	level_up_subtitle.text = "Level %02d - choose 1 of 3 powerups" % current_level
@@ -241,7 +242,7 @@ func _resume_level_up_sequence() -> void:
 	if pending_level_ups <= 0:
 		return
 	get_tree().paused = false
-	current_powerup_choices = BHPowerups.get_random_choices(3)
+	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
 	_open_level_up_ui(player.level)
 
 func _on_choice_button_1_pressed() -> void:
