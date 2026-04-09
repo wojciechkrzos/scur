@@ -3,6 +3,8 @@ extends CanvasLayer
 @onready var lives_label = $LivesLabel
 @onready var kills_label = $KillsLabel
 @onready var timer_label = $TimerLabel
+@onready var level_label = $LevelLabel
+@onready var experience_label = $ExperienceLabel
 @onready var pattern_label = $PatternLabel
 @onready var result_label = $ResultLabel
 
@@ -10,6 +12,8 @@ func setup(duration: float, lives: int) -> void:
 	update_lives(lives)
 	update_kills(0)
 	update_timer(duration)
+	update_level(1)
+	update_experience(0, 5)
 	update_pattern("AIMED FAN")
 	result_label.visible = false
 
@@ -26,6 +30,12 @@ func update_timer(t: float) -> void:
 		timer_label.modulate = Color(1.0, 0.4, 0.4)
 	else:
 		timer_label.modulate = Color(1.0, 1.0, 1.0)
+
+func update_level(level: int) -> void:
+	level_label.text = "Level: %02d" % level
+
+func update_experience(current_xp: int, xp_to_next: int) -> void:
+	experience_label.text = "XP: %02d / %02d" % [current_xp, xp_to_next]
 
 func update_pattern(name_text: String) -> void:
 	pattern_label.text = "Pattern: " + name_text
