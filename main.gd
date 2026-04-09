@@ -1,8 +1,15 @@
 extends Node2D
 
-@export var debug_mode: String = "loop"  # "loop", "heaven", "vn", "boss"
+@export var debug_mode: String = "stage1"  # "loop", "heaven", "vn", "boss", "stage1"
+
+#debug stage 1 na jutrzejszy pokaz
+const Stage1Flow = preload("res://Stage1Flow.gd")
+var stage1_runner: Node = null
+
+@onready var pause_menu = $PauseMenu
 
 @onready var dialogue_box = $DialogueBox
+
 var current_stage: Node = null
 
 #loader dialogow
@@ -10,8 +17,43 @@ func load_dialogue(id: String):
 	match id:
 		"test":
 			return preload("res://data/dialogues/test.gd").new().get_lines()
-	
+
+		"tutorial":
+			return preload("res://data/dialogues/tutorial.gd").new().get_lines()
+
+		"stage1_pre_boss":
+			return preload("res://data/dialogues/stage1_pre_boss.gd").new().get_lines()
+
 	return []
+
+#metody do pausemenu
+
+func get_current_tutorial() -> Dictionary:
+	if current_stage == null:
+		return Tutorials.TUTORIALS["vn"]
+
+	if current_stage.has_method("get_stage_type"):
+		var type = current_stage.get_stage_type()
+		return Tutorials.TUTORIALS.get(type, Tutorials.TUTORIALS["vn"])
+
+	return Tutorials.TUTORIALS["vn"]
+
+
+func _open_pause():
+	var data = get_current_tutorial()
+	pause_menu.show_menu(data.tutorial, data.objective)
+	
+func _close_pause():
+	get_tree().paused = false
+	pause_menu.visible = false
+
+func _unhandled_input(event):
+	if event.is_action_pressed("ui_cancel"):
+		print("ESC OK")
+		if get_tree().paused:
+			_close_pause()
+		else:
+			_open_pause()
 
 
 #METODY DO VN
@@ -26,18 +68,29 @@ func start_vn(id: String):
 	dialogue_box.dialogue_finished.connect(_on_vn_finished)
 	
 func _on_vn_finished(result):
-	print("VN finished, choice:", result.get("choice", ""))
+	# print("VN finished, choice:", result.get("choice", ""))
 
-	start_boss_test("B")
+	# start_boss_test("B")
+	print("VN finished")
+
+	if stage1_runner:
+		stage1_runner.notify_vn_finished(result)
+	else:
+		start_boss_test("B")
 
 
 #METODY DO BULLET HEAVEN
 func _on_heaven_finished(result):
 	print("Heaven ended:", result)
+
 	if is_instance_valid(current_stage):
 		current_stage.queue_free()
 		current_stage = null
-	start_vn("test")
+
+	if stage1_runner:
+		stage1_runner.notify_heaven_finished(result)
+	else:
+		start_vn("test")
 
 
 func start_bullet_heaven() -> void:
@@ -56,9 +109,13 @@ func start_bullet_heaven() -> void:
 
 func _on_boss_finished(result):
 	print("Boss ended:", result)
+
 	if is_instance_valid(current_stage):
 		current_stage.queue_free()
 		current_stage = null
+
+	if stage1_runner:
+		stage1_runner.notify_boss_finished(result)
 	
 func start_boss_test(which: String = "A"):
 	if is_instance_valid(current_stage):
@@ -86,10 +143,21 @@ func start_boss_test(which: String = "A"):
 	#{"type": "boss", "id": "B"}
 #]
 
+func _start_stage1():
+	stage1_runner = Stage1Flow.new()
+	add_child(stage1_runner)
+	stage1_runner.start(self)
 
 func _ready() -> void:
+	pause_menu.resume_pressed.connect(_close_pause)
+	set_process_input(true)
+	set_process_unhandled_input(true)
+
 	print("MAIN READY")
-	print(dialogue_box)
+
+	if debug_mode == "stage1":
+		_start_stage1()
+		return
 
 	match debug_mode:
 		"loop":

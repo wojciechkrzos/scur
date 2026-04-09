@@ -44,6 +44,9 @@ var current_powerup_choices: Array[int] = []
 @onready var choice_button_2 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton2
 @onready var choice_button_3 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton3
 
+func get_stage_type() -> String:
+	return "heaven"
+
 func start_fight() -> void:
 	play_area_rect = get_viewport_rect()
 	fight_active = true

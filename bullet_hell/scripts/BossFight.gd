@@ -56,6 +56,9 @@ var fight_active: bool = false
 @onready var bullet_container = $BulletContainer
 @onready var player_bullet_container = $PlayerBulletContainer
 
+func get_stage_type() -> String:
+	return "boss"
+
 # ── API publiczne ────────────────────────────────────────────────────────────
 
 ## Wywołaj tę funkcję z gry bazowej, żeby odpalić mini-grę.

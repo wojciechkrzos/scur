@@ -12,6 +12,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+<<<<<<< HEAD
+=======
+mouse_filter = 1
+>>>>>>> 66b840b (feat: pause screen, tutorial and stage 1 loader)
 
 [node name="Panel" type="PanelContainer" parent="Root" unique_id=1270029070]
 custom_minimum_size = Vector2(800, 180)
@@ -20,7 +24,11 @@ anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_top = -180.0
+<<<<<<< HEAD
 offset_right = 40.0
+=======
+offset_right = 800.0
+>>>>>>> 66b840b (feat: pause screen, tutorial and stage 1 loader)
 grow_vertical = 0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Root/Panel" unique_id=983272876]
