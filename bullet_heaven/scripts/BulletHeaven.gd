@@ -12,6 +12,11 @@ const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 @export var wave_step_seconds: float = 7.0
 @export var world_scroll_speed: float = 520.0
 
+const TANK_SPAWN_CHANCE := 0.2
+const SWARM_EVENT_INTERVAL := 12.0
+const SWARM_EVENT_ENEMY_COUNT := 9
+const SWARM_EDGE_MARGIN := 18.0
+
 var fight_active: bool = false
 var time_remaining: float = 0.0
 var kills: int = 0
@@ -19,6 +24,7 @@ var wave_level: int = 1
 var current_spawn_interval: float = 0.6
 var play_area_rect: Rect2 = Rect2(0, 0, 800, 600)
 var world_offset: Vector2 = Vector2.ZERO
+var swarm_event_elapsed: float = 0.0
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
 
@@ -46,6 +52,7 @@ func start_fight() -> void:
 	wave_level = 1
 	current_spawn_interval = base_spawn_interval
 	world_offset = Vector2.ZERO
+	swarm_event_elapsed = 0.0
 
 	player.setup(play_area_rect, bullet_container)
 	hud.setup(stage_duration, player.max_lives)
@@ -90,6 +97,7 @@ func _process(delta: float) -> void:
 		return
 
 	_scroll_world(delta)
+	_update_swarm_event(delta)
 
 	time_remaining -= delta
 	if time_remaining <= 0.0:
@@ -112,12 +120,71 @@ func _spawn_enemy() -> void:
 	if not fight_active:
 		return
 
+	var kind := BHEnemyScript.EnemyKind.STANDARD
+	if randf() < TANK_SPAWN_CHANCE:
+		kind = BHEnemyScript.EnemyKind.TANK
+	_spawn_enemy_of_kind(kind, _random_edge_position(play_area_rect))
+
+func _spawn_enemy_of_kind(kind: int, spawn_position: Vector2, direction: Vector2 = Vector2.ZERO) -> void:
 	var enemy = BHEnemyScript.new()
-	enemy.player_ref = player
-	enemy.global_position = _random_edge_position(play_area_rect)
+	enemy.setup(kind, player, play_area_rect, direction)
+	enemy.global_position = spawn_position
 	enemy.area_entered.connect(_on_enemy_area_entered.bind(enemy))
 	enemy.died.connect(_on_enemy_died.bind(enemy))
 	enemy_container.add_child(enemy)
+
+func _update_swarm_event(delta: float) -> void:
+	swarm_event_elapsed += delta
+	if swarm_event_elapsed < SWARM_EVENT_INTERVAL:
+		return
+
+	swarm_event_elapsed = 0.0
+	_spawn_swarm_event()
+
+func _spawn_swarm_event() -> void:
+	if not fight_active:
+		return
+
+	var side: int = randi() % 4
+	var spawn_positions := _build_swarm_spawn_positions(side, SWARM_EVENT_ENEMY_COUNT)
+	for spawn_position in spawn_positions:
+		var direction: Vector2 = (player.global_position - spawn_position).normalized()
+		if direction == Vector2.ZERO:
+			direction = _fallback_swarm_direction(side)
+		_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.SWARM, spawn_position, direction)
+
+func _build_swarm_spawn_positions(side: int, count: int) -> Array[Vector2]:
+	var positions: Array[Vector2] = []
+	if count <= 0:
+		return positions
+
+	if side == 0 or side == 1:
+		var x: float = play_area_rect.position.x - SWARM_EDGE_MARGIN if side == 0 else play_area_rect.end.x + SWARM_EDGE_MARGIN
+		var available_height: float = max(play_area_rect.size.y - SWARM_EDGE_MARGIN * 2.0, 1.0)
+		var step: float = 0.0 if count == 1 else available_height / float(count - 1)
+		for i in count:
+			var y: float = play_area_rect.position.y + SWARM_EDGE_MARGIN + step * float(i)
+			positions.append(Vector2(x, y))
+	else:
+		var y: float = play_area_rect.position.y - SWARM_EDGE_MARGIN if side == 2 else play_area_rect.end.y + SWARM_EDGE_MARGIN
+		var available_width: float = max(play_area_rect.size.x - SWARM_EDGE_MARGIN * 2.0, 1.0)
+		var step: float = 0.0 if count == 1 else available_width / float(count - 1)
+		for i in count:
+			var x: float = play_area_rect.position.x + SWARM_EDGE_MARGIN + step * float(i)
+			positions.append(Vector2(x, y))
+
+	return positions
+
+func _fallback_swarm_direction(side: int) -> Vector2:
+	match side:
+		0:
+			return Vector2.RIGHT
+		1:
+			return Vector2.LEFT
+		2:
+			return Vector2.DOWN
+		_:
+			return Vector2.UP
 
 func _random_edge_position(rect: Rect2) -> Vector2:
 	var side := randi() % 4
