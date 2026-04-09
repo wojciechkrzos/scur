@@ -3,6 +3,7 @@ extends Area2D
 signal died
 
 @export var speed: float = 85.0
+@export var xp_value: int = 1
 
 var hp: int = 1
 var player_ref: Node2D
