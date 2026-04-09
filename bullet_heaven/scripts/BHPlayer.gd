@@ -10,6 +10,10 @@ enum FirePattern {
 	RADIAL_RING
 }
 
+const AIMED_FAN_OFFSETS: Array[float] = [-0.28, -0.14, 0.0, 0.14, 0.28]
+const RADIAL_RING_BULLET_COUNT := 8
+const RADIAL_RING_PHASE_STEP := 0.2
+
 @export var speed: float = 230.0
 @export var max_lives: int = 3
 @export var pattern_switch_interval: float = 10.0
@@ -63,23 +67,25 @@ func _shoot_burst() -> void:
 	if not fight_active or not is_alive:
 		return
 
-	if current_pattern == FirePattern.AIMED_FAN:
-		_fire_aimed_fan()
-	else:
-		_fire_radial_ring()
+	_fire_current_pattern()
+
+func _fire_current_pattern() -> void:
+	match current_pattern:
+		FirePattern.AIMED_FAN:
+			_fire_aimed_fan()
+		FirePattern.RADIAL_RING:
+			_fire_radial_ring()
 
 func _fire_aimed_fan() -> void:
 	var base_angle := -PI * 0.5
-	var offsets := [-0.28, -0.14, 0.0, 0.14, 0.28]
-	for off in offsets:
+	for off in AIMED_FAN_OFFSETS:
 		_spawn_shot(Vector2.from_angle(base_angle + off), 360.0)
 
 func _fire_radial_ring() -> void:
-	var count := 8
-	for i in count:
-		var angle := ring_phase + TAU * float(i) / float(count)
+	for i in RADIAL_RING_BULLET_COUNT:
+		var angle := ring_phase + TAU * float(i) / float(RADIAL_RING_BULLET_COUNT)
 		_spawn_shot(Vector2.from_angle(angle), 320.0)
-	ring_phase += 0.2
+	ring_phase += RADIAL_RING_PHASE_STEP
 
 func _spawn_shot(direction: Vector2, shot_speed: float) -> void:
 	var shot = BHShotScript.new()
@@ -110,9 +116,13 @@ func _end_invincibility() -> void:
 	sprite.modulate.a = 1.0
 
 func get_pattern_name() -> String:
-	if current_pattern == FirePattern.AIMED_FAN:
-		return "AIMED FAN"
-	return "RADIAL RING"
+	match current_pattern:
+		FirePattern.AIMED_FAN:
+			return "AIMED FAN"
+		FirePattern.RADIAL_RING:
+			return "RADIAL RING"
+		_:
+			return "UNKNOWN"
 
 func get_move_input() -> Vector2:
 	var dir := Vector2.ZERO

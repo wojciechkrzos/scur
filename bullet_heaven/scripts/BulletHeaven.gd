@@ -4,6 +4,9 @@ signal fight_ended(result: String)
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 
+const PLAYER_COLLISION_DAMAGE := 999
+const WAVE_INTERVAL_DECREMENT := 0.07
+
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
 @export var spawn_interval_floor: float = 0.2
@@ -26,25 +29,12 @@ var world_offset: Vector2 = Vector2.ZERO
 @onready var hud = $HUD
 
 func start_fight() -> void:
-	play_area_rect = get_viewport_rect()
-	fight_active = true
-	time_remaining = stage_duration
-	kills = 0
-	wave_level = 1
-	current_spawn_interval = base_spawn_interval
-	world_offset = Vector2.ZERO
+	_reset_stage_state()
 
 	player.setup(play_area_rect, bullet_container)
 	hud.setup(stage_duration, player.max_lives)
 	backdrop.setup(play_area_rect)
 	backdrop.set_scroll_offset(world_offset)
-	enemy_container.position = Vector2.ZERO
-	bullet_container.position = Vector2.ZERO
-
-	for child in enemy_container.get_children():
-		child.queue_free()
-	for child in bullet_container.get_children():
-		child.queue_free()
 
 	spawn_timer.wait_time = current_spawn_interval
 	if not spawn_timer.timeout.is_connected(_spawn_enemy):
@@ -61,23 +51,8 @@ func _process(delta: float) -> void:
 		return
 
 	_scroll_world(delta)
-
-	time_remaining -= delta
-	if time_remaining <= 0.0:
-		time_remaining = 0.0
-		_end_fight("win")
-		return
-
-	var target_wave = 1 + int((stage_duration - time_remaining) / wave_step_seconds)
-	if target_wave > wave_level:
-		wave_level = target_wave
-		current_spawn_interval = max(spawn_interval_floor, base_spawn_interval - 0.07 * float(wave_level - 1))
-		spawn_timer.wait_time = current_spawn_interval
-
-	hud.update_timer(time_remaining)
-	hud.update_lives(player.lives)
-	hud.update_kills(kills)
-	hud.update_pattern(player.get_pattern_name())
+	_update_combat_timer(delta)
+	_update_hud()
 
 func _spawn_enemy() -> void:
 	if not fight_active:
@@ -111,7 +86,7 @@ func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 	if not fight_active:
 		return
 	if area == player and player.is_alive:
-		enemy.take_damage(999)
+		enemy.take_damage(PLAYER_COLLISION_DAMAGE)
 		player.take_hit()
 		return
 	if area.is_in_group("bh_player_bullet"):
@@ -150,3 +125,41 @@ func _scroll_world(delta: float) -> void:
 	enemy_container.position += scroll_delta
 	bullet_container.position += scroll_delta
 	backdrop.set_scroll_offset(world_offset)
+
+func _reset_stage_state() -> void:
+	play_area_rect = get_viewport_rect()
+	fight_active = true
+	time_remaining = stage_duration
+	kills = 0
+	wave_level = 1
+	current_spawn_interval = base_spawn_interval
+	world_offset = Vector2.ZERO
+	enemy_container.position = Vector2.ZERO
+	bullet_container.position = Vector2.ZERO
+	_clear_container(enemy_container)
+	_clear_container(bullet_container)
+
+func _clear_container(container: Node) -> void:
+	for child in container.get_children():
+		child.queue_free()
+
+func _update_combat_timer(delta: float) -> void:
+	time_remaining -= delta
+	if time_remaining <= 0.0:
+		time_remaining = 0.0
+		_end_fight("win")
+		return
+
+	var target_wave := 1 + int((stage_duration - time_remaining) / wave_step_seconds)
+	if target_wave <= wave_level:
+		return
+
+	wave_level = target_wave
+	current_spawn_interval = max(spawn_interval_floor, base_spawn_interval - WAVE_INTERVAL_DECREMENT * float(wave_level - 1))
+	spawn_timer.wait_time = current_spawn_interval
+
+func _update_hud() -> void:
+	hud.update_timer(time_remaining)
+	hud.update_lives(player.lives)
+	hud.update_kills(kills)
+	hud.update_pattern(player.get_pattern_name())
