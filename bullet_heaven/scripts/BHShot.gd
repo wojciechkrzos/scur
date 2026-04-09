@@ -2,7 +2,11 @@ extends Area2D
 
 var direction: Vector2 = Vector2.UP
 var speed: float = 320.0
+var damage: int = 1
 var anchor_ref: Node2D = null
+
+func get_damage() -> int:
+	return damage
 
 func _ready() -> void:
 	collision_layer = 3
