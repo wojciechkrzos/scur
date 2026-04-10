@@ -1,6 +1,24 @@
 [gd_scene format=3 uid="uid://brrqc17asskuh"]
 
 [ext_resource type="Script" uid="uid://cppotxo31l4mv" path="res://vn/dialogue_box.gd" id="1_2ix3t"]
+[ext_resource type="Shader" uid="uid://cemyb0omvlxsd" path="res://vn/dialogue_box.gdshader" id="2_p0r7i"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_p0r7i"]
+shader = ExtResource("2_p0r7i")
+shader_parameter/top_color = Color(0.35, 0.05, 0.08, 1)
+shader_parameter/bottom_color = Color(0.05, 0, 0.02, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_njxd2"]
+content_margin_left = 15.0
+content_margin_top = 5.0
+content_margin_right = 15.0
+content_margin_bottom = 5.0
+bg_color = Color(0.05882353, 0, 0.023529412, 0.63529414)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+anti_aliasing = false
 
 [node name="DialogueBox" type="CanvasLayer" unique_id=788235638]
 script = ExtResource("1_2ix3t")
@@ -12,6 +30,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="Root" unique_id=382165132]
+material = SubResource("ShaderMaterial_p0r7i")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="Portrait" type="TextureRect" parent="Root" unique_id=64848504]
 custom_minimum_size = Vector2(450, 450)
@@ -34,12 +62,16 @@ anchor_bottom = 1.0
 offset_top = -180.0
 offset_right = 40.0
 grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_njxd2")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Root/Panel" unique_id=616651268]
 layout_mode = 2
 
 [node name="SpeakerName" type="Label" parent="Root/Panel/VBoxContainer" unique_id=1635821083]
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0.41960785, 0, 0, 1)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 24
 
 [node name="DialogueText" type="RichTextLabel" parent="Root/Panel/VBoxContainer" unique_id=371361286]
 layout_mode = 2

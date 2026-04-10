@@ -4,10 +4,11 @@
 [ext_resource type="Script" uid="uid://db33thlvkg4bv" path="res://main.gd" id="1_uu6xs"]
 [ext_resource type="PackedScene" uid="uid://brblywda3wrcj" path="res://ui/PauseMenu.tscn" id="3_cm0pq"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=2043763574]
 script = ExtResource("1_uu6xs")
+debug_mode = null
 
-[node name="DialogueBox" parent="." instance=ExtResource("1_glv2v")]
+[node name="DialogueBox" parent="." unique_id=196183672 instance=ExtResource("1_glv2v")]
 visible = false
 
-[node name="PauseMenu" parent="." instance=ExtResource("3_cm0pq")]
+[node name="PauseMenu" parent="." unique_id=1435452582 instance=ExtResource("3_cm0pq")]

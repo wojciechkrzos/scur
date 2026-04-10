@@ -12,18 +12,17 @@ var stage1_runner: Node = null
 
 var current_stage: Node = null
 
-#loader dialogow
-func load_dialogue(id: String):
+#loader dialogow, TODO poprawić to bo nie bedziemy wszystkiego tak ladowac chyba? moze do osobnego pliku
+func load_dialogue(id: String, choice_id: String = ""):
 	match id:
 		"test":
 			return preload("res://data/dialogues/test.gd").new().get_lines()
-
 		"tutorial":
 			return preload("res://data/dialogues/tutorial.gd").new().get_lines()
-
 		"stage1_pre_boss":
 			return preload("res://data/dialogues/stage1_pre_boss.gd").new().get_lines()
-
+		"stage1_post_boss":
+			return preload("res://data/dialogues/stage1_post_boss.gd").new().get_lines(choice_id)
 	return []
 
 #metody do pausemenu
@@ -57,13 +56,10 @@ func _unhandled_input(event):
 
 
 #METODY DO VN
-func start_vn(id: String):
-	var data = load_dialogue(id)
-
-	# 👇 NAJPIERW disconnect
+func start_vn(id: String, choice_id: String = ""):
+	var data = load_dialogue(id, choice_id)  # ← przekaż
 	if dialogue_box.dialogue_finished.is_connected(_on_vn_finished):
 		dialogue_box.dialogue_finished.disconnect(_on_vn_finished)
-
 	dialogue_box.start_dialogue(data)
 	dialogue_box.dialogue_finished.connect(_on_vn_finished)
 	

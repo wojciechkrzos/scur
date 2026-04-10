@@ -170,8 +170,13 @@ func _finish_typing() -> void:
 	dialogue_text.visible_characters = -1
 
 	var line: Dictionary = lines[current_line_index]
+	
+	# Sprawdź czy ta linia kończy dialog - handling ścieżek wyboru
+	if line.get("end_dialogue", false):
+		_end_dialogue()
+		return
+	
 	var choices: Array = line.get("choices", [])
-
 	if not choices.is_empty():
 		_show_choices(choices)
 
