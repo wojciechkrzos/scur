@@ -5,10 +5,11 @@ signal dialogue_finished(result)
 
 @onready var root: Control = $Root
 @onready var panel: PanelContainer = $Root/Panel
-@onready var portrait: TextureRect = $Root/Panel/HBoxContainer/Portrait
-@onready var speaker_name: Label = $Root/Panel/HBoxContainer/VBoxContainer/SpeakerName
-@onready var dialogue_text: RichTextLabel = $Root/Panel/HBoxContainer/VBoxContainer/DialogueText
-@onready var choices_container: VBoxContainer = $Root/Panel/HBoxContainer/VBoxContainer/ChoicesContainer
+
+@onready var portrait: TextureRect = $Root/Portrait
+@onready var speaker_name: Label = $Root/Panel/VBoxContainer/SpeakerName
+@onready var dialogue_text: RichTextLabel = $Root/Panel/VBoxContainer/DialogueText
+@onready var choices_container: VBoxContainer = $Root/Panel/VBoxContainer/ChoicesContainer
 
 @export var text_speed: float = 50.0
 
@@ -25,6 +26,10 @@ var current_effect: String = ""
 var last_choice_id: String = ""
 
 func _ready() -> void:
+	print(portrait)
+	print(speaker_name)
+	print(dialogue_text)
+	print(choices_container)
 	print("DialogueBox ready")
 	visible = false
 	set_process(false)
@@ -33,6 +38,17 @@ func _ready() -> void:
 
 	shake_effect = ShakeEffect.new()
 	dialogue_text.install_effect(shake_effect)
+	
+	#USTAWIENIE POZYCJI SPRITEA
+	portrait.anchor_left = 0.0
+	portrait.anchor_top = 1.0
+	portrait.anchor_right = 0.0
+	portrait.anchor_bottom = 1.0
+	portrait.offset_left = 0.0
+	portrait.offset_top = -(panel.custom_minimum_size.y + portrait.custom_minimum_size.y)
+	portrait.offset_right = portrait.custom_minimum_size.x
+	portrait.offset_bottom = -panel.custom_minimum_size.y
+	portrait.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 func start_dialogue(dialogue_lines: Array) -> void:
 	print("start_dialogue called")

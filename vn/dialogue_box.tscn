@@ -13,6 +13,18 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="Portrait" type="TextureRect" parent="Root" unique_id=64848504]
+custom_minimum_size = Vector2(450, 450)
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -200.0
+offset_right = 200.0
+grow_vertical = 0
+expand_mode = 2
+stretch_mode = 5
+
 [node name="Panel" type="PanelContainer" parent="Root" unique_id=1270029070]
 custom_minimum_size = Vector2(800, 180)
 layout_mode = 1
@@ -23,22 +35,16 @@ offset_top = -180.0
 offset_right = 40.0
 grow_vertical = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Root/Panel" unique_id=983272876]
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/Panel" unique_id=616651268]
 layout_mode = 2
 
-[node name="Portrait" type="TextureRect" parent="Root/Panel/HBoxContainer" unique_id=64848504]
+[node name="SpeakerName" type="Label" parent="Root/Panel/VBoxContainer" unique_id=1635821083]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Root/Panel/HBoxContainer" unique_id=616651268]
-layout_mode = 2
-
-[node name="SpeakerName" type="Label" parent="Root/Panel/HBoxContainer/VBoxContainer" unique_id=1635821083]
-layout_mode = 2
-
-[node name="DialogueText" type="RichTextLabel" parent="Root/Panel/HBoxContainer/VBoxContainer" unique_id=371361286]
+[node name="DialogueText" type="RichTextLabel" parent="Root/Panel/VBoxContainer" unique_id=371361286]
 layout_mode = 2
 bbcode_enabled = true
 fit_content = true
 
-[node name="ChoicesContainer" type="VBoxContainer" parent="Root/Panel/HBoxContainer/VBoxContainer" unique_id=1895988590]
+[node name="ChoicesContainer" type="VBoxContainer" parent="Root/Panel/VBoxContainer" unique_id=1895988590]
 layout_mode = 2
