@@ -19,16 +19,28 @@ const PLAY_AREA_RECT := Rect2(20, 20, 440, 500)
 # Żeby dodać nowego bossa: skopiuj słownik, zmień parametry i patterns[]
 # patterns[] to nazwy metod z Boss.gd — wykonują się cyklicznie po kolei
 
+#const BOSS_A := {
+	#"win_condition": 1,  # 1 = KILL — zabij bossa, brak timera
+	#"hp": 150.0,
+	#"patterns": [
+		#{ "method": "_pattern_spiral",       "duration": 5.0, "fire_rate": 0.05 },
+		#{ "method": "_pattern_double_spiral", "duration": 6.0, "fire_rate": 0.04 },
+		#{ "method": "_pattern_aimed_burst",  "duration": 4.0, "fire_rate": 0.35 },
+		#{ "method": "_pattern_ring_burst",   "duration": 4.0, "fire_rate": 0.60 },
+	#]
+#}
+
 const BOSS_A := {
-	"win_condition": 1,  # 1 = KILL — zabij bossa, brak timera
-	"hp": 150.0,
+	"win_condition": 1,
+	"hp": 100.0,
 	"patterns": [
-		{ "method": "_pattern_spiral",       "duration": 5.0, "fire_rate": 0.05 },
-		{ "method": "_pattern_double_spiral", "duration": 6.0, "fire_rate": 0.04 },
-		{ "method": "_pattern_aimed_burst",  "duration": 4.0, "fire_rate": 0.35 },
-		{ "method": "_pattern_ring_burst",   "duration": 4.0, "fire_rate": 0.60 },
+		{ "method": "_pattern_radial", "duration": 6.0, "fire_rate": 0.12 },
+		{ "method": "_pattern_spiral", "duration": 6.0, "fire_rate": 0.08 },
+		{ "method": "_pattern_aimed_burst", "duration": 5.0, "fire_rate": 0.4 },
+		{ "method": "_pattern_cross_wave", "duration": 5.0, "fire_rate": 0.10 },
 	]
 }
+
 
 const BOSS_B := {
 	"win_condition": 0,  # 0 = SURVIVE — przeżyj X sekund

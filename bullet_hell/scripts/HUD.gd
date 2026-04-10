@@ -12,6 +12,11 @@ extends CanvasLayer
 var _score_flash_timer: float = 0.0
 
 func setup(win_condition: int, time_limit: float, boss_max_hp: float) -> void:
+	
+	#TODO zmienic ten layout z "na sztywno" na np margin container, vbox container i top/bottom row hbox container
+	lives_label.offset_top = 40
+	score_label.offset_top = 60
+	
 	boss_hp_bar.max_value = boss_max_hp
 	boss_hp_bar.value = boss_max_hp
 	
@@ -60,7 +65,7 @@ func flash_score() -> void:
 func show_result(result: String) -> void:
 	win_label.visible = true
 	if result == "win":
-		win_label.text = "✦ CLEAR ✦"
+		win_label.text = "✦ WYGRANA ✦"
 		win_label.modulate = Color(0.4, 1.0, 0.4)
 	else:
 		win_label.text = "✦ DERATYZACJA ✦"

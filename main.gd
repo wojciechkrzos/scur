@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var debug_mode: String = "stage1"  # "loop", "heaven", "vn", "boss", "stage1"
+@export var debug_mode: String = "boss"  # "loop", "heaven", "vn", "boss", "stage1"
 
 #debug stage 1 na jutrzejszy pokaz
 const Stage1Flow = preload("res://Stage1Flow.gd")
@@ -163,4 +163,4 @@ func _ready() -> void:
 		"vn":
 			start_vn("test")
 		"boss":
-			start_boss_test("B")
+			start_boss_test("A")
