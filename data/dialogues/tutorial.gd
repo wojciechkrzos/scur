@@ -40,7 +40,7 @@ func get_lines():
 		},
 		{
 			"id": "vn_01_2",
-			"speaker": "System",
+			"speaker": "",
 			"text": "(telefon dzwoni)"
 		},
 		{
@@ -63,7 +63,7 @@ func get_lines():
 		},
 		{
 			"id": "vn_01_6",
-			"speaker": "System",
+			"speaker": "",
 			"text": "(klik. cisza.)"
 		},
 		{

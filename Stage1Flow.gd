@@ -73,15 +73,36 @@ func _run_boss(which: String) -> void:
 
 func notify_vn_finished(_result = null) -> void:
 	_run_next()
+	
+
+func _run_same_step() -> void:
+	active = true
+
+	var step = flow[index - 1] # cofamy się do aktualnego
+	match step.type:
+		"heaven":
+			_run_heaven()
+		"boss":
+			_run_boss(step.which)
 
 
-func notify_heaven_finished(_result = null) -> void:
+func notify_heaven_finished(result: String = "win") -> void:
 	_cleanup_stage()
+
+	if result == "lose":
+		_run_same_step()
+		return
+
 	_run_next()
 
 
-func notify_boss_finished(_result = null) -> void:
+func notify_boss_finished(result: String = "win") -> void:
 	_cleanup_stage()
+
+	if result == "lose":
+		_run_same_step()
+		return
+
 	_run_next()
 
 

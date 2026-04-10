@@ -1,6 +1,7 @@
 extends Resource
 const boss1_base = preload("res://assets/portraits/boss1_base.png")
 const szymon_base = preload("res://assets/portraits/szymon_base.png")
+const gosia_base = preload("res://assets/portraits/gosia_base.png")
 
 func get_lines():
 	return [
@@ -141,53 +142,65 @@ func get_lines():
 			"speaker": "B.O.S.S.",
 			"text": "Sentymentalni głupcy. Zawsze tacy sami.",
 			"effect": "shake",
-			"portrait": boss1_base,
+			"portrait": boss1_base
+		},
+		{
+			"id": 20,
+			"speaker": "Gosia",
+			"text": "Halo? Halo, Szymon? Musisz pokonać go, strzelając za pomocą Spacji! I skup się, gdy będziesz chciał precyzyjnie strzelać - wciskając przycisk Shift!",
+			"portrait": gosia_base,
 			"end_dialogue": true
 		},
 
 		# ── ŚCIEŻKA B: Szymon pyta o kasę → mroczne zakończenie ─────────
 		{
-			"id": 20,
+			"id": 21,
 			"speaker": "B.O.S.S.",
 			"text": "Ha.",
 			"portrait": boss1_base
 		},
 		{
-			"id": 21,
+			"id": 22,
 			"speaker": "B.O.S.S.",
 			"text": "Trzykrotność poprzedniej pensji. Służbowy szczur — przepraszam, samochód. I pakiet benefitów którego nie powstydziłby się żaden człowiek.",
 			"portrait": boss1_base
 		},
 		{
-			"id": 22,
+			"id": 23,
 			"speaker": "Szymon",
 			"text": "A Marek?",
 			"portrait": szymon_base
 		},
 		{
-			"id": 23,
+			"id": 24,
 			"speaker": "B.O.S.S.",
 			"text": "Marek podjął złe decyzje. Ty podejmujesz lepsze.",
 			"portrait": boss1_base
 		},
 		{
-			"id": 24,
+			"id": 25,
 			"speaker": "Szymon",
 			"text": "...",
 			"portrait": szymon_base
 		},
 		{
-			"id": 25,
+			"id": 26,
 			"speaker": "Szymon",
 			"text": "Dobra. Ale najpierw udowodnij, że jesteś wart tej kasy.",
 			"portrait": szymon_base
 		},
 		{
-			"id": 26,
+			"id": 27,
 			"speaker": "B.O.S.S.",
 			"text": "Widzisz? Zawsze wiedziałem, że jesteś jednym z nas.",
 			"effect": "shake",
-			"portrait": boss1_base,
+			"portrait": boss1_base
+		},
+				{
+			"id": 28,
+			"speaker": "Gosia",
+			"text": "Halo? Halo, Szymon? Musisz pokonać go, strzelając za pomocą Spacji! I skup się, gdy będziesz chciał precyzyjnie strzelać - wciskając przycisk Shift!",
+			"portrait": gosia_base,
 			"end_dialogue": true
 		},
 	]
