@@ -11,6 +11,8 @@ signal dialogue_finished(result)
 @onready var dialogue_text: RichTextLabel = $Root/Panel/VBoxContainer/DialogueText
 @onready var choices_container: VBoxContainer = $Root/Panel/VBoxContainer/ChoicesContainer
 
+@onready var skip_button: Button = $Root/SkipButton
+
 @export var text_speed: float = 50.0
 
 var shake_effect: ShakeEffect
@@ -49,6 +51,11 @@ func _ready() -> void:
 	portrait.offset_right = portrait.custom_minimum_size.x
 	portrait.offset_bottom = -panel.custom_minimum_size.y
 	portrait.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	
+	#PODPIECIE LOGIKI SKIP BUTTONA + STYLING
+	skip_button.pressed.connect(_on_skip_pressed)
+	skip_button.offset_right = - get_viewport().get_visible_rect().size.x + panel.custom_minimum_size.x + skip_button.size.x + 10
+	skip_button.offset_bottom = -10.0
 
 func start_dialogue(dialogue_lines: Array) -> void:
 	print("start_dialogue called")
@@ -75,6 +82,43 @@ func _process(delta: float) -> void:
 
 	if visible_characters_count >= current_text.length():
 		_finish_typing()
+
+
+#LOGIKA SKIP BUTTONA Z UWZGLEDNIENIEM ROZNYCH SCIEZEK DIALOGOWYCH (jump to)
+func _on_skip_pressed() -> void:
+	skip_to_next_choice()
+	
+func skip_to_next_choice() -> void:
+	if is_typing:
+		_show_full_text()
+	
+	# Zabezpieczenie przed nieskończoną pętlą
+	var visited := {}
+	
+	while current_line_index < lines.size():
+		# Wykryj pętlę — jeśli byliśmy już w tej linii, przerwij
+		if visited.has(current_line_index):
+			_end_dialogue()
+			return
+		visited[current_line_index] = true
+		
+		var line: Dictionary = lines[current_line_index]
+		var choices: Array = line.get("choices", [])
+		
+		# Ta linia ma wybory — zatrzymaj się tutaj
+		if not choices.is_empty():
+			_show_current_line()
+			return
+		
+		# Sprawdź czy linia sama w sobie ma jump_to (auto-skok bez wyboru)
+		if line.has("jump_to"):
+			current_line_index = int(line["jump_to"])
+			continue
+		
+		# Zwykła linia — idź do następnej
+		current_line_index += 1
+	
+	_end_dialogue()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
