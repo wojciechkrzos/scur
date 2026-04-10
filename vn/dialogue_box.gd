@@ -26,6 +26,7 @@ var is_typing: bool = false
 var current_speed: float = 0.0
 var current_effect: String = ""
 var last_choice_id: String = ""
+var waiting_for_end := false #delay po koncu dialogu zeby zdazyc przeczytac ostatnia wiadomosc
 
 func _ready() -> void:
 	print(portrait)
@@ -89,6 +90,10 @@ func _on_skip_pressed() -> void:
 	skip_to_next_choice()
 	
 func skip_to_next_choice() -> void:
+	if waiting_for_end:
+		_end_dialogue()
+		return
+		
 	if is_typing:
 		_show_full_text()
 	
@@ -123,6 +128,12 @@ func skip_to_next_choice() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
+		
+	if waiting_for_end:
+		if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
+			_end_dialogue()
+			get_viewport().set_input_as_handled()
+		return
 
 	if event.is_action_pressed("ui_accept"):
 		if is_typing:
@@ -130,6 +141,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif choices_container.get_child_count() == 0:
 			_go_to_next_line()
 			get_viewport().set_input_as_handled()
+			
 
 #pomocnicza metoda
 #func _get_shake_effect() -> ShakeEffect:
@@ -173,7 +185,7 @@ func _finish_typing() -> void:
 	
 	# Sprawdź czy ta linia kończy dialog - handling ścieżek wyboru
 	if line.get("end_dialogue", false):
-		_end_dialogue()
+		waiting_for_end = true
 		return
 	
 	var choices: Array = line.get("choices", [])
@@ -186,6 +198,8 @@ func _show_full_text() -> void:
 	_finish_typing()
 
 func _go_to_next_line() -> void:
+	if waiting_for_end:
+		return
 	current_line_index += 1
 	_show_current_line()
 
