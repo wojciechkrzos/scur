@@ -27,6 +27,7 @@ var current_speed: float = 0.0
 var current_effect: String = ""
 var last_choice_id: String = ""
 var waiting_for_end := false #delay po koncu dialogu zeby zdazyc przeczytac ostatnia wiadomosc
+var id_to_index := {} #mapowanie id dialogu na indeksy
 
 func _ready() -> void:
 	print(portrait)
@@ -59,13 +60,17 @@ func _ready() -> void:
 	skip_button.offset_bottom = -10.0
 
 func start_dialogue(dialogue_lines: Array) -> void:
-	print("start_dialogue called")
-
 	if dialogue_lines.is_empty():
 		return
 
 	lines = dialogue_lines
 	current_line_index = 0
+	
+	id_to_index.clear()
+	for i in range(lines.size()):
+		var line = lines[i]
+		if line.has("id"):
+			id_to_index[line["id"]] = i
 
 	visible = true
 	dialogue_started.emit()
@@ -117,8 +122,14 @@ func skip_to_next_choice() -> void:
 		
 		# Sprawdź czy linia sama w sobie ma jump_to (auto-skok bez wyboru)
 		if line.has("jump_to"):
-			current_line_index = int(line["jump_to"])
-			continue
+			var target_id = int(line["jump_to"])
+			if id_to_index.has(target_id):
+				current_line_index = id_to_index[target_id]
+				continue
+			else:
+				push_error("Nie znaleziono id: " + str(target_id))
+				_end_dialogue()
+				return
 		
 		# Zwykła linia — idź do następnej
 		current_line_index += 1
@@ -213,7 +224,12 @@ func _show_choices(choices: Array) -> void:
 func _on_choice_selected(choice_data: Dictionary) -> void:
 	last_choice_id = str(choice_data.get("id", ""))
 	if choice_data.has("jump_to"):
-		current_line_index = int(choice_data["jump_to"])
+		var target_id = int(choice_data["jump_to"])
+		if id_to_index.has(target_id):
+			current_line_index = id_to_index[target_id]
+		else:
+			push_error("Nie znaleziono id: " + str(target_id))
+			return
 		_show_current_line()
 		return
 
@@ -231,6 +247,7 @@ func _end_dialogue() -> void:
 	visible = false
 	set_process(false)
 	_clear_choices()
+	waiting_for_end = false
 	dialogue_finished.emit({
 		"choice": last_choice_id
 	})
