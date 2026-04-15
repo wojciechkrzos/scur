@@ -42,6 +42,9 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	bullet_container = bullet_cont
 	lives = max_lives
 	
+	focus_indicator.position = Vector2.ZERO
+	hitbox_sprite.position = Vector2.ZERO
+	
 	# Mały hitbox — tylko 4x4 piksele jak w Touhou
 	var shape = RectangleShape2D.new()
 	shape.size = Vector2(4, 4)

@@ -53,6 +53,9 @@ var player_ref: Node2D = null
 # ── Konfiguracja ─────────────────────────────────────────────────────────────
 
 func setup(hp: float, area: Rect2, custom_patterns: Array = []) -> void:
+	#na razie chowam dla czytelnosci
+	hp_bar.visible = false
+	
 	max_hp = hp
 	current_hp = hp
 	play_area = area

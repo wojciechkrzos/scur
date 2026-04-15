@@ -66,11 +66,9 @@ offset_right = 25.0
 offset_bottom = 25.0
 color = Color(0.8785174, 0.0006328231, 0.8809489, 1)
 
-[node name="FocusIndicator" type="ColorRect" parent="Player" unique_id=966119912]
-custom_minimum_size = Vector2(24, 24)
-offset_right = 30.0
-offset_bottom = 30.0
-color = Color(1, 1, 1, 0.09803922)
+[node name="FocusIndicator" type="Node2D" parent="Player" unique_id=1840478201]
+
+[node name="Sprite2D" type="Sprite2D" parent="Player/FocusIndicator" unique_id=107769203]
 
 [node name="ShootTimer" type="Timer" parent="Player" unique_id=1848634855]
 wait_time = 0.12
@@ -111,10 +109,10 @@ offset_bottom = 73.0
 text = "Time: 30"
 
 [node name="BossHPLabel" type="Label" parent="HUD" unique_id=602615661]
-offset_left = 80.0
-offset_top = 28.0
-offset_right = 120.0
-offset_bottom = 51.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 77.0
+offset_bottom = 33.0
 text = "BOSS HP"
 
 [node name="WinLabel" type="Label" parent="HUD" unique_id=1925111805]
