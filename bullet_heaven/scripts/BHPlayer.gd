@@ -13,9 +13,20 @@ const BASE_SPEED := 230.0
 const BASE_MAX_LIVES := 3
 const BASE_SHOOT_INTERVAL := 0.8
 const MAX_PLAYER_SPEED := 420.0
+const ANIM_ROW_FRONT := 0
+const ANIM_ROW_FRONT_SIDE := 1
+const ANIM_ROW_SIDE := 2
+const ANIM_ROW_SIDE_BACK := 3
+const ANIM_ROW_BACK := 4
 
 @export var speed: float = 230.0
 @export var max_lives: int = 3
+@export var walk_sheet: Texture2D = preload("res://assets/bullet_heaven/player_walk.png")
+@export var walk_hframes: int = 4
+@export var walk_vframes: int = 5
+@export var walk_frame_count: int = 4
+@export var walk_fps: float = 10.0
+@export var walk_sprite_scale: float = 3.0
 
 var lives: int = 3
 var experience_points: int = 0
@@ -29,6 +40,9 @@ var bullet_container: Node2D
 var active_weapons: Array[int] = []
 var spiral_phase: float = 0.0
 var anchor_position: Vector2 = Vector2.ZERO
+var animation_elapsed: float = 0.0
+var facing_row: int = ANIM_ROW_FRONT
+var anim_sprite: Sprite2D
 
 const INVINCIBILITY_DURATION := 1.2
 
@@ -55,7 +69,11 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	position = anchor_position
 	active_weapons = [BHPowerups.WeaponId.AOE_PULSE]
 	spiral_phase = 0.0
+	animation_elapsed = 0.0
+	facing_row = ANIM_ROW_FRONT
 	shoot_timer.wait_time = BASE_SHOOT_INTERVAL
+	_ensure_animation_sprite()
+	_update_walk_animation(0.0)
 	_update_experience_ui()
 
 	if not shoot_timer.timeout.is_connected(_shoot_burst):
@@ -69,6 +87,7 @@ func _process(delta: float) -> void:
 	if not fight_active or not is_alive:
 		return
 	position = anchor_position
+	_update_walk_animation(delta)
 
 func _shoot_burst() -> void:
 	if not fight_active or not is_alive:
@@ -147,12 +166,12 @@ func take_hit() -> void:
 
 func _start_invincibility() -> void:
 	is_invincible = true
-	sprite.modulate.a = 0.4
+	_set_visual_alpha(0.4)
 	invincibility_timer.start(INVINCIBILITY_DURATION)
 
 func _end_invincibility() -> void:
 	is_invincible = false
-	sprite.modulate.a = 1.0
+	_set_visual_alpha(1.0)
 
 func add_experience(amount: int) -> void:
 	if amount <= 0:
@@ -219,3 +238,75 @@ func get_move_input() -> Vector2:
 		dir.y += 1
 	return dir.normalized() if dir != Vector2.ZERO else Vector2.ZERO
 
+func _ensure_animation_sprite() -> void:
+	if anim_sprite != null and is_instance_valid(anim_sprite):
+		_apply_animation_sprite_settings()
+		return
+	if walk_sheet == null:
+		return
+
+	anim_sprite = Sprite2D.new()
+	anim_sprite.name = "PlayerAnimSprite"
+	_apply_animation_sprite_settings()
+	anim_sprite.frame_coords = Vector2i(0, ANIM_ROW_FRONT)
+	add_child(anim_sprite)
+
+	if sprite != null:
+		sprite.visible = false
+
+func _apply_animation_sprite_settings() -> void:
+	if anim_sprite == null:
+		return
+	anim_sprite.texture = walk_sheet
+	anim_sprite.centered = true
+	anim_sprite.hframes = maxi(walk_hframes, 1)
+	anim_sprite.vframes = maxi(walk_vframes, 1)
+	anim_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var applied_scale: float = maxf(walk_sprite_scale, 0.1)
+	anim_sprite.scale = Vector2(applied_scale, applied_scale)
+
+func _update_walk_animation(delta: float) -> void:
+	if anim_sprite == null or not is_instance_valid(anim_sprite):
+		return
+
+	var move_input := get_move_input()
+	if move_input == Vector2.ZERO:
+		animation_elapsed = 0.0
+		var idle_row: int = mini(maxi(facing_row, 0), anim_sprite.vframes - 1)
+		anim_sprite.frame_coords = Vector2i(0, idle_row)
+		anim_sprite.flip_h = false
+		return
+
+	var row_and_flip := _resolve_animation_row_and_flip(move_input)
+	facing_row = mini(maxi(int(row_and_flip["row"]), 0), anim_sprite.vframes - 1)
+	anim_sprite.flip_h = bool(row_and_flip["flip_h"])
+	animation_elapsed += delta * max(walk_fps, 1.0)
+	var frame_count: int = mini(maxi(walk_frame_count, 1), anim_sprite.hframes)
+	var frame_index: int = int(floor(animation_elapsed)) % frame_count
+	anim_sprite.frame_coords = Vector2i(frame_index, facing_row)
+
+func _resolve_animation_row_and_flip(direction: Vector2) -> Dictionary:
+	var x := direction.x
+	var y := direction.y
+	var abs_x := absf(x)
+	var flip_h := x < 0.0
+
+	if y >= 0.85:
+		return {"row": ANIM_ROW_FRONT, "flip_h": false}
+	if y <= -0.85:
+		return {"row": ANIM_ROW_BACK, "flip_h": false}
+	if y > 0.25 and abs_x > 0.2:
+		return {"row": ANIM_ROW_FRONT_SIDE, "flip_h": flip_h}
+	if y < -0.25 and abs_x > 0.2:
+		return {"row": ANIM_ROW_SIDE_BACK, "flip_h": flip_h}
+	return {"row": ANIM_ROW_SIDE, "flip_h": flip_h}
+
+func _set_visual_alpha(alpha: float) -> void:
+	if anim_sprite != null and is_instance_valid(anim_sprite):
+		var anim_modulate: Color = anim_sprite.modulate
+		anim_modulate.a = alpha
+		anim_sprite.modulate = anim_modulate
+	if sprite != null:
+		var sprite_modulate: Color = sprite.modulate
+		sprite_modulate.a = alpha
+		sprite.modulate = sprite_modulate

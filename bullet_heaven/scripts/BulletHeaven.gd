@@ -5,12 +5,25 @@ signal fight_ended(result: String)
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
+const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
 @export var spawn_interval_floor: float = 0.2
 @export var wave_step_seconds: float = 7.0
 @export var world_scroll_speed: float = 520.0
+@export var world_size_px: Vector2 = Vector2(1920.0, 1080.0)
+@export var border_visibility_padding_px: Vector2 = Vector2(500.0, 500.0)
+@export var initial_world_offset_px: Vector2 = Vector2(0.0, -180.0)
+@export_file("*.webp", "*.png") var fountain_texture_path: String = "res://assets/bullet_heaven/fountain.png"
+@export_file("*.png", "*.webp") var pigeon_texture_path: String = "res://assets/bullet_heaven/pigeon_eat.png"
+@export var fountain_hframes: int = 4
+@export var fountain_vframes: int = 1
+@export var fountain_frame_count: int = 4
+@export var fountain_fps: float = 8.0
+@export var fountain_visual_scale: float = 1.0
+@export var fountain_collision_radius: float = 120.0
+@export var xp_pickup_radius: float = 34.0
 
 const TANK_SPAWN_CHANCE := 0.2
 const SWARM_EVENT_INTERVAL := 12.0
@@ -24,6 +37,8 @@ var wave_level: int = 1
 var current_spawn_interval: float = 0.6
 var play_area_rect: Rect2 = Rect2(0, 0, 800, 600)
 var world_offset: Vector2 = Vector2.ZERO
+var world_scroll_limits: Vector2 = Vector2.ZERO
+var player_collision_radius: float = 7.0
 var swarm_event_elapsed: float = 0.0
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
@@ -33,6 +48,7 @@ var current_powerup_choices: Array[int] = []
 @onready var enemy_container = $EnemyContainer
 @onready var pickup_container = $PickupContainer
 @onready var bullet_container = $BulletContainer
+@onready var obstacle_container = $ObstacleContainer
 @onready var spawn_timer = $SpawnTimer
 @onready var hud = $HUD
 @onready var level_up_layer = $LevelUpLayer
@@ -49,22 +65,29 @@ func get_stage_type() -> String:
 
 func start_fight() -> void:
 	play_area_rect = get_viewport_rect()
+	_update_world_scroll_limits()
 	fight_active = true
 	time_remaining = stage_duration
 	kills = 0
 	wave_level = 1
 	current_spawn_interval = base_spawn_interval
-	world_offset = Vector2.ZERO
 	swarm_event_elapsed = 0.0
+	world_offset = _clamp_world_offset(initial_world_offset_px)
+	if player.has_node("PlayerCollision"):
+		var player_shape_node := player.get_node("PlayerCollision") as CollisionShape2D
+		if player_shape_node != null and player_shape_node.shape is CircleShape2D:
+			player_collision_radius = (player_shape_node.shape as CircleShape2D).radius
 
 	player.setup(play_area_rect, bullet_container)
 	hud.setup(stage_duration, player.max_lives)
 	hud.update_pattern(player.get_pattern_name())
-	backdrop.setup(play_area_rect)
+	backdrop.setup(play_area_rect, world_size_px)
 	backdrop.set_scroll_offset(world_offset)
-	enemy_container.position = Vector2.ZERO
-	pickup_container.position = Vector2.ZERO
-	bullet_container.position = Vector2.ZERO
+	enemy_container.visible = true
+	enemy_container.position = world_offset
+	pickup_container.position = world_offset
+	bullet_container.position = world_offset
+	obstacle_container.position = world_offset
 	pending_level_ups = 0
 	current_powerup_choices.clear()
 	_hide_level_up_ui()
@@ -75,6 +98,10 @@ func start_fight() -> void:
 		child.queue_free()
 	for child in bullet_container.get_children():
 		child.queue_free()
+	for child in obstacle_container.get_children():
+		child.queue_free()
+	_spawn_stage_obstacles()
+	_ensure_player_spawn_clearance()
 
 	spawn_timer.wait_time = current_spawn_interval
 	if not spawn_timer.timeout.is_connected(_spawn_enemy):
@@ -118,6 +145,7 @@ func _process(delta: float) -> void:
 	hud.update_lives(player.lives)
 	hud.update_kills(kills)
 	hud.update_pattern(player.get_pattern_name())
+	_collect_nearby_xp_orbs()
 
 func _spawn_enemy() -> void:
 	if not fight_active:
@@ -130,7 +158,7 @@ func _spawn_enemy() -> void:
 
 func _spawn_enemy_of_kind(kind: int, spawn_position: Vector2, direction: Vector2 = Vector2.ZERO) -> void:
 	var enemy = BHEnemyScript.new()
-	enemy.setup(kind, player, play_area_rect, direction)
+	enemy.setup(kind, player, play_area_rect, direction, obstacle_container)
 	enemy.global_position = spawn_position
 	enemy.area_entered.connect(_on_enemy_area_entered.bind(enemy))
 	enemy.died.connect(_on_enemy_died.bind(enemy))
@@ -261,20 +289,20 @@ func _end_fight(result: String) -> void:
 	await get_tree().create_timer(2.0).timeout
 	fight_ended.emit(result)
 
-func _spawn_xp_pellet(position: Vector2, xp_amount: int) -> void:
+func _spawn_xp_pellet(spawn_position: Vector2, xp_amount: int) -> void:
 	var orb = BHExperienceOrbScript.new()
 	orb.xp_amount = max(xp_amount, 1)
 	orb.add_to_group("bh_xp_pellet")
-	orb.position = pickup_container.to_local(position)
+	orb.position = pickup_container.to_local(spawn_position)
 	pickup_container.call_deferred("add_child", orb)
 
 func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
 		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
 
-	level_up_title.text = "LEVEL UP"
-	level_up_subtitle.text = "Level %02d - choose 1 of 3 powerups" % current_level
-	level_up_hint.text = "Paused until you pick an upgrade"
+	level_up_title.text = "AWANS"
+	level_up_subtitle.text = "Poziom %02d - wybierz 1 z 3 ulepszeń" % current_level
+	level_up_hint.text = "Gra zatrzymana do wyboru ulepszenia"
 
 	var buttons := [choice_button_1, choice_button_2, choice_button_3]
 	for index in buttons.size():
@@ -329,9 +357,200 @@ func _scroll_world(delta: float) -> void:
 	if move_input == Vector2.ZERO:
 		return
 
-	var scroll_delta := -move_input * world_scroll_speed * delta
-	world_offset += scroll_delta
-	enemy_container.position += scroll_delta
-	pickup_container.position += scroll_delta
-	bullet_container.position += scroll_delta
+	var desired_delta := -move_input * world_scroll_speed * delta
+	var clamped_target := _clamp_world_offset(world_offset + desired_delta)
+	var clamped_delta := clamped_target - world_offset
+	var applied_delta := Vector2.ZERO
+	var try_x := Vector2(clamped_delta.x, 0.0)
+	if not _would_player_overlap_obstacle(try_x):
+		applied_delta.x = try_x.x
+	var try_y := Vector2(applied_delta.x, clamped_delta.y)
+	if not _would_player_overlap_obstacle(try_y):
+		applied_delta.y = clamped_delta.y
+	if applied_delta == Vector2.ZERO:
+		return
+
+	world_offset += applied_delta
+	enemy_container.position += applied_delta
+	pickup_container.position += applied_delta
+	bullet_container.position += applied_delta
+	obstacle_container.position += applied_delta
 	backdrop.set_scroll_offset(world_offset)
+
+func _clamp_world_offset(offset: Vector2) -> Vector2:
+	return Vector2(
+		clampf(offset.x, -world_scroll_limits.x, world_scroll_limits.x),
+		clampf(offset.y, -world_scroll_limits.y, world_scroll_limits.y)
+	)
+
+func _would_player_overlap_obstacle(offset_delta: Vector2) -> bool:
+	if obstacle_container == null:
+		return false
+
+	var player_position: Vector2 = player.global_position
+	for obstacle in obstacle_container.get_children():
+		if obstacle.has_method("blocks_player_point"):
+			if bool(obstacle.call("blocks_player_point", player_position, player_collision_radius, offset_delta)):
+				return true
+			continue
+		if not obstacle.has_method("get_collision_radius"):
+			continue
+		var obstacle_radius: float = float(obstacle.call("get_collision_radius"))
+		var obstacle_position: Vector2 = (obstacle as Node2D).global_position + offset_delta
+		if player_position.distance_to(obstacle_position) < player_collision_radius + obstacle_radius:
+			return true
+	return false
+
+func _ensure_player_spawn_clearance() -> void:
+	if obstacle_container == null:
+		return
+	if not _would_player_overlap_obstacle(Vector2.ZERO):
+		return
+
+	# Prefer moving the world up on screen so the player starts below the fountain.
+	var step_candidates: Array[Vector2] = [
+		Vector2(0.0, -12.0),
+		Vector2(-12.0, 0.0),
+		Vector2(12.0, 0.0),
+		Vector2(0.0, 12.0),
+	]
+
+	for _attempt in 80:
+		var current_overlap_count: int = _count_player_obstacle_overlaps(Vector2.ZERO)
+		if current_overlap_count <= 0:
+			return
+
+		var best_delta: Vector2 = Vector2.ZERO
+		var best_overlap_count: int = current_overlap_count
+		for step in step_candidates:
+			var candidate_offset: Vector2 = _clamp_world_offset(world_offset + step)
+			var candidate_delta: Vector2 = candidate_offset - world_offset
+			if candidate_delta == Vector2.ZERO:
+				continue
+			var candidate_overlap_count: int = _count_player_obstacle_overlaps(candidate_delta)
+			if candidate_overlap_count < best_overlap_count:
+				best_overlap_count = candidate_overlap_count
+				best_delta = candidate_delta
+
+		# If no improving step exists, force preferred upward nudge to avoid permanent stuck spawn.
+		if best_delta == Vector2.ZERO:
+			var forced_offset: Vector2 = _clamp_world_offset(world_offset + step_candidates[0])
+			best_delta = forced_offset - world_offset
+		if best_delta == Vector2.ZERO:
+			break
+
+		_apply_world_delta(best_delta)
+
+func _count_player_obstacle_overlaps(offset_delta: Vector2) -> int:
+	if obstacle_container == null:
+		return 0
+
+	var overlap_count: int = 0
+	var player_position: Vector2 = player.global_position
+	for obstacle in obstacle_container.get_children():
+		if obstacle.has_method("blocks_player_point"):
+			if bool(obstacle.call("blocks_player_point", player_position, player_collision_radius, offset_delta)):
+				overlap_count += 1
+			continue
+		if not obstacle.has_method("get_collision_radius"):
+			continue
+		var obstacle_radius: float = float(obstacle.call("get_collision_radius"))
+		var obstacle_position: Vector2 = (obstacle as Node2D).global_position + offset_delta
+		if player_position.distance_to(obstacle_position) < player_collision_radius + obstacle_radius:
+			overlap_count += 1
+	return overlap_count
+
+func _apply_world_delta(applied_delta: Vector2) -> void:
+	if applied_delta == Vector2.ZERO:
+		return
+	world_offset += applied_delta
+	enemy_container.position += applied_delta
+	pickup_container.position += applied_delta
+	bullet_container.position += applied_delta
+	obstacle_container.position += applied_delta
+	backdrop.set_scroll_offset(world_offset)
+
+func _spawn_stage_obstacles() -> void:
+	var world_center := play_area_rect.get_center()
+	var world_top_left := world_center - world_size_px * 0.5
+	var fountain_texture: Texture2D = _load_texture(fountain_texture_path)
+	var pigeon_texture: Texture2D = _load_texture(pigeon_texture_path)
+
+	if fountain_texture != null:
+		var fountain = BHObstacleScript.new()
+		fountain.setup(
+			fountain_texture,
+			fountain_collision_radius,
+			fountain_visual_scale,
+			maxi(fountain_hframes, 1),
+			maxi(fountain_vframes, 1),
+			maxi(fountain_frame_count, 1),
+			maxf(fountain_fps, 0.0),
+			true,
+			0.08
+		)
+		fountain.position = world_center
+		obstacle_container.add_child(fountain)
+
+	if pigeon_texture != null:
+		var pigeon_top_left = BHObstacleScript.new()
+		pigeon_top_left.setup(pigeon_texture, 24.0, 2.0, 4, 1, 4, 8.0)
+		pigeon_top_left.position = world_top_left + Vector2(world_size_px.x * 0.25, world_size_px.y * 0.25)
+		obstacle_container.add_child(pigeon_top_left)
+
+		var pigeon_bottom_right = BHObstacleScript.new()
+		pigeon_bottom_right.setup(pigeon_texture, 24.0, 2.0, 4, 1, 4, 8.0)
+		pigeon_bottom_right.set_visual_flip_h(true)
+		pigeon_bottom_right.position = world_top_left + Vector2(world_size_px.x * 0.75, world_size_px.y * 0.75)
+		obstacle_container.add_child(pigeon_bottom_right)
+
+		var pigeon_left_mid = BHObstacleScript.new()
+		pigeon_left_mid.setup(pigeon_texture, 24.0, 2.0, 4, 1, 4, 8.0)
+		pigeon_left_mid.position = world_top_left + Vector2(world_size_px.x * 0.18, world_size_px.y * 0.56)
+		obstacle_container.add_child(pigeon_left_mid)
+
+		var pigeon_right_mid = BHObstacleScript.new()
+		pigeon_right_mid.setup(pigeon_texture, 24.0, 2.0, 4, 1, 4, 8.0)
+		pigeon_right_mid.set_visual_flip_h(true)
+		pigeon_right_mid.position = world_top_left + Vector2(world_size_px.x * 0.82, world_size_px.y * 0.44)
+		obstacle_container.add_child(pigeon_right_mid)
+
+func _load_texture(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
+	if ResourceLoader.exists(path):
+		var resource := ResourceLoader.load(path)
+		if resource is Texture2D:
+			return resource as Texture2D
+
+	var absolute_path: String = ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(absolute_path):
+		var image := Image.load_from_file(absolute_path)
+		if image != null and not image.is_empty():
+			return ImageTexture.create_from_image(image)
+
+	push_warning("Could not load texture for obstacle: %s" % path)
+	return null
+
+func _update_world_scroll_limits() -> void:
+	var half_world := world_size_px * 0.5
+	world_scroll_limits = Vector2(
+		max(half_world.x, 0.0),
+		max(half_world.y, 0.0)
+	)
+
+func _collect_nearby_xp_orbs() -> void:
+	if pickup_container == null:
+		return
+	var player_position: Vector2 = player.global_position
+	for orb in pickup_container.get_children():
+		if not (orb is Area2D):
+			continue
+		if not orb.is_in_group("bh_xp_pellet"):
+			continue
+		var orb_position: Vector2 = (orb as Node2D).global_position
+		if player_position.distance_to(orb_position) > xp_pickup_radius:
+			continue
+		if orb.has_method("get_xp_amount"):
+			player.add_experience(orb.get_xp_amount())
+		orb.queue_free()

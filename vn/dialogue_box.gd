@@ -5,6 +5,7 @@ signal dialogue_finished(result)
 
 @onready var root: Control = $Root
 @onready var panel: PanelContainer = $Root/Panel
+@onready var background_image: TextureRect = $Root/BackgroundImage
 
 @onready var portrait: TextureRect = $Root/Portrait
 @onready var speaker_name: Label = $Root/Panel/VBoxContainer/SpeakerName
@@ -12,6 +13,7 @@ signal dialogue_finished(result)
 @onready var choices_container: VBoxContainer = $Root/Panel/VBoxContainer/ChoicesContainer
 
 @onready var skip_button: Button = $Root/SkipButton
+@onready var next_button: Button = $Root/NextButton
 
 @export var text_speed: float = 50.0
 
@@ -28,6 +30,13 @@ var current_effect: String = ""
 var last_choice_id: String = ""
 var waiting_for_end := false #delay po koncu dialogu zeby zdazyc przeczytac ostatnia wiadomosc
 var id_to_index := {} #mapowanie id dialogu na indeksy
+var current_dialogue_id: String = ""
+
+const DIALOGUE_BACKGROUNDS := {
+	"tutorial": "res://assets/vn/background_tutorial.png",
+	"stage1_pre_boss": "res://assets/vn/background_stage_1_pre_boss.png",
+	"stage1_post_boss": "res://assets/vn/background_stage_1_post_boss.png",
+}
 
 func _ready() -> void:
 	print(portrait)
@@ -37,6 +46,8 @@ func _ready() -> void:
 	print("DialogueBox ready")
 	visible = false
 	set_process(false)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	dialogue_text.bbcode_enabled = true
 
@@ -58,6 +69,14 @@ func _ready() -> void:
 	skip_button.pressed.connect(_on_skip_pressed)
 	skip_button.offset_right = - get_viewport().get_visible_rect().size.x + panel.custom_minimum_size.x + skip_button.size.x + 10
 	skip_button.offset_bottom = -10.0
+	next_button.pressed.connect(_on_next_pressed)
+	next_button.offset_right = skip_button.offset_right - next_button.size.x - 12.0
+	next_button.offset_bottom = -10.0
+	_apply_dialogue_background()
+
+func set_dialogue_context(dialogue_id: String) -> void:
+	current_dialogue_id = dialogue_id
+	_apply_dialogue_background()
 
 func start_dialogue(dialogue_lines: Array) -> void:
 	if dialogue_lines.is_empty():
@@ -65,6 +84,7 @@ func start_dialogue(dialogue_lines: Array) -> void:
 
 	lines = dialogue_lines
 	current_line_index = 0
+	_apply_dialogue_background()
 	
 	id_to_index.clear()
 	for i in range(lines.size()):
@@ -77,6 +97,28 @@ func start_dialogue(dialogue_lines: Array) -> void:
 
 	_show_current_line()
 	set_process(true)
+
+func _apply_dialogue_background() -> void:
+	if background_image == null:
+		return
+
+	background_image.texture = null
+	background_image.visible = false
+
+	if current_dialogue_id.is_empty():
+		return
+
+	if not DIALOGUE_BACKGROUNDS.has(current_dialogue_id):
+		return
+
+	var texture_path: String = str(DIALOGUE_BACKGROUNDS[current_dialogue_id])
+	if not ResourceLoader.exists(texture_path):
+		return
+
+	var texture_resource := ResourceLoader.load(texture_path)
+	if texture_resource is Texture2D:
+		background_image.texture = texture_resource as Texture2D
+		background_image.visible = true
 
 func _process(delta: float) -> void:
 	if not is_typing:
@@ -93,6 +135,9 @@ func _process(delta: float) -> void:
 #LOGIKA SKIP BUTTONA Z UWZGLEDNIENIEM ROZNYCH SCIEZEK DIALOGOWYCH (jump to)
 func _on_skip_pressed() -> void:
 	skip_to_next_choice()
+
+func _on_next_pressed() -> void:
+	_advance_dialogue()
 	
 func skip_to_next_choice() -> void:
 	if waiting_for_end:
@@ -146,12 +191,26 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_pressed("ui_accept"):
-		if is_typing:
-			_show_full_text()
-		elif choices_container.get_child_count() == 0:
-			_go_to_next_line()
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			_advance_dialogue()
 			get_viewport().set_input_as_handled()
+			return
+
+	if event.is_action_pressed("ui_accept"):
+		_advance_dialogue()
+		get_viewport().set_input_as_handled()
+
+func _advance_dialogue() -> void:
+	if waiting_for_end:
+		_end_dialogue()
+		return
+	if is_typing:
+		_show_full_text()
+		return
+	if choices_container.get_child_count() == 0:
+		_go_to_next_line()
 			
 
 #pomocnicza metoda

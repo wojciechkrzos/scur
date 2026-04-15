@@ -24,6 +24,7 @@ var player_ref: Node2D
 var play_area: Rect2 = Rect2()
 var movement_mode: MovementMode = MovementMode.HOMING
 var move_direction: Vector2 = Vector2.ZERO
+var obstacle_container: Node2D
 var is_dying: bool = false
 var damage_flash_tween: Tween
 var damage_flash_overlay: ColorRect
@@ -32,11 +33,12 @@ var body_color: Color = Color(0.9, 0.2, 0.2, 1.0)
 var body_size: Vector2 = Vector2(16, 16)
 var collision_radius: float = 8.0
 
-func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Vector2.ZERO) -> void:
+func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Vector2.ZERO, obstacles: Node2D = null) -> void:
 	enemy_kind = kind
 	player_ref = player
 	play_area = area
 	move_direction = direction.normalized() if direction != Vector2.ZERO else Vector2.ZERO
+	obstacle_container = obstacles
 	_apply_kind_stats()
 
 func _apply_kind_stats() -> void:
@@ -95,14 +97,37 @@ func _process(delta: float) -> void:
 		MovementMode.HOMING:
 			if player_ref == null:
 				return
-			var dir = (player_ref.global_position - global_position).normalized()
-			global_position += dir * speed * delta
+			var dir: Vector2 = (player_ref.global_position - global_position).normalized()
+			var homing_step: Vector2 = dir * speed * delta
+			var homing_target: Vector2 = global_position + homing_step
+			if not _would_overlap_obstacle(homing_target):
+				global_position = homing_target
 			if global_position.distance_to(player_ref.global_position) > 1500.0:
 				queue_free()
 		MovementMode.LINE:
-			global_position += move_direction * speed * delta
+			var line_step: Vector2 = move_direction * speed * delta
+			var line_target: Vector2 = global_position + line_step
+			if not _would_overlap_obstacle(line_target):
+				global_position = line_target
 			if _is_outside_play_area(140.0):
 				queue_free()
+
+func _would_overlap_obstacle(target_position: Vector2) -> bool:
+	if obstacle_container == null:
+		return false
+
+	for obstacle in obstacle_container.get_children():
+		if obstacle.has_method("blocks_player_point"):
+			if bool(obstacle.call("blocks_player_point", target_position, collision_radius, Vector2.ZERO)):
+				return true
+			continue
+		if not obstacle.has_method("get_collision_radius"):
+			continue
+		var obstacle_radius: float = float(obstacle.call("get_collision_radius"))
+		var obstacle_position: Vector2 = (obstacle as Node2D).global_position
+		if target_position.distance_to(obstacle_position) < collision_radius + obstacle_radius:
+			return true
+	return false
 
 func _is_outside_play_area(margin: float) -> bool:
 	if play_area.size == Vector2.ZERO:
