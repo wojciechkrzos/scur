@@ -42,6 +42,7 @@ var player_collision_radius: float = 7.0
 var swarm_event_elapsed: float = 0.0
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
+var level_up_dimmer: ColorRect
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -120,6 +121,7 @@ func _ready() -> void:
 	level_up_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	level_up_panel.visible = false
+	_setup_level_up_ui_styles()
 	start_fight()
 
 func _process(delta: float) -> void:
@@ -300,9 +302,9 @@ func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
 		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
 
-	level_up_title.text = "AWANS"
-	level_up_subtitle.text = "Poziom %02d - wybierz 1 z 3 ulepszeń" % current_level
-	level_up_hint.text = "Gra zatrzymana do wyboru ulepszenia"
+	level_up_title.text = "Wybór Ulepszenia"
+	level_up_subtitle.text = "Poziom %02d  •  wybierz 1 z 3 kart" % current_level
+	level_up_hint.text = "Rozgrywka zatrzymana do momentu wyboru"
 
 	var buttons := [choice_button_1, choice_button_2, choice_button_3]
 	for index in buttons.size():
@@ -311,16 +313,21 @@ func _open_level_up_ui(current_level: int) -> void:
 			var powerup_id := current_powerup_choices[index]
 			button.visible = true
 			button.disabled = false
-			button.text = BHPowerups.get_powerup_name(powerup_id) + "\n" + BHPowerups.get_powerup_description(powerup_id)
+			button.text = _format_powerup_card_text(powerup_id)
+			_apply_choice_button_style(button, powerup_id)
 			button.set_meta("powerup_id", powerup_id)
 		else:
 			button.visible = false
 
 	level_up_panel.visible = true
+	if level_up_dimmer != null:
+		level_up_dimmer.visible = true
 	get_tree().paused = true
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
+	if level_up_dimmer != null:
+		level_up_dimmer.visible = false
 	current_powerup_choices.clear()
 
 func _apply_powerup_from_button(button: Button) -> void:
@@ -335,6 +342,98 @@ func _apply_powerup_from_button(button: Button) -> void:
 	_hide_level_up_ui()
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
+
+func _setup_level_up_ui_styles() -> void:
+	if level_up_dimmer == null:
+		level_up_dimmer = ColorRect.new()
+		level_up_dimmer.name = "LevelUpDimmer"
+		level_up_dimmer.anchors_preset = Control.PRESET_FULL_RECT
+		level_up_dimmer.anchor_right = 1.0
+		level_up_dimmer.anchor_bottom = 1.0
+		level_up_dimmer.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		level_up_dimmer.grow_vertical = Control.GROW_DIRECTION_BOTH
+		level_up_dimmer.color = Color(0.03, 0.02, 0.06, 0.72)
+		level_up_dimmer.visible = false
+		level_up_layer.add_child(level_up_dimmer)
+		level_up_layer.move_child(level_up_dimmer, 0)
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.09, 0.1, 0.14, 0.98)
+	panel_style.border_width_left = 3
+	panel_style.border_width_top = 3
+	panel_style.border_width_right = 3
+	panel_style.border_width_bottom = 3
+	panel_style.border_color = Color(0.45, 0.75, 1.0, 0.95)
+	panel_style.corner_radius_top_left = 14
+	panel_style.corner_radius_top_right = 14
+	panel_style.corner_radius_bottom_left = 14
+	panel_style.corner_radius_bottom_right = 14
+	level_up_panel.add_theme_stylebox_override("panel", panel_style)
+
+	level_up_title.add_theme_font_size_override("font_size", 42)
+	level_up_subtitle.add_theme_font_size_override("font_size", 20)
+	level_up_hint.add_theme_font_size_override("font_size", 18)
+	level_up_hint.modulate = Color(0.86, 0.91, 1.0, 0.92)
+
+func _format_powerup_card_text(powerup_id: int) -> String:
+	var name := BHPowerups.get_powerup_name(powerup_id)
+	var desc := BHPowerups.get_powerup_description(powerup_id)
+	var data := BHPowerups.get_powerup_data(powerup_id)
+	var kind := String(data.get("kind", ""))
+	var kind_label := "TECH"
+	match kind:
+		"weapon":
+			kind_label = "BROŃ"
+		"speed":
+			kind_label = "MOBILNOŚĆ"
+		"shield":
+			kind_label = "OBRONA"
+	return "%s\n%s\n\n%s" % [name.to_upper(), kind_label, desc]
+
+func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
+	button.custom_minimum_size = Vector2(188.0, 190.0)
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	button.add_theme_font_size_override("font_size", 19)
+
+	var data := BHPowerups.get_powerup_data(powerup_id)
+	var kind := String(data.get("kind", ""))
+	var border_color := Color(0.55, 0.7, 1.0, 1.0)
+	var fill_color := Color(0.13, 0.17, 0.24, 1.0)
+	match kind:
+		"weapon":
+			border_color = Color(0.98, 0.68, 0.28, 1.0)
+			fill_color = Color(0.2, 0.14, 0.1, 1.0)
+		"speed":
+			border_color = Color(0.33, 0.9, 0.62, 1.0)
+			fill_color = Color(0.07, 0.2, 0.16, 1.0)
+		"shield":
+			border_color = Color(0.42, 0.78, 1.0, 1.0)
+			fill_color = Color(0.08, 0.13, 0.2, 1.0)
+
+	var normal_style := StyleBoxFlat.new()
+	normal_style.bg_color = fill_color
+	normal_style.border_color = border_color
+	normal_style.border_width_left = 2
+	normal_style.border_width_top = 2
+	normal_style.border_width_right = 2
+	normal_style.border_width_bottom = 2
+	normal_style.corner_radius_top_left = 10
+	normal_style.corner_radius_top_right = 10
+	normal_style.corner_radius_bottom_left = 10
+	normal_style.corner_radius_bottom_right = 10
+
+	var hover_style := normal_style.duplicate() as StyleBoxFlat
+	hover_style.bg_color = fill_color.lightened(0.12)
+
+	var pressed_style := normal_style.duplicate() as StyleBoxFlat
+	pressed_style.bg_color = fill_color.darkened(0.14)
+
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_color_override("font_color", Color(0.97, 0.98, 1.0, 1.0))
 
 func _resume_level_up_sequence() -> void:
 	if pending_level_ups <= 0:
