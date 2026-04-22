@@ -41,6 +41,7 @@ var play_area: Rect2
 var bullet_container: Node2D
 var active_weapons: Array[int] = []
 var spiral_phase: float = 0.0
+var speedup_stacks: int = 0
 var anchor_position: Vector2 = Vector2.ZERO
 var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
@@ -71,6 +72,7 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	position = anchor_position
 	active_weapons = [BHPowerups.WeaponId.AOE_PULSE]
 	spiral_phase = 0.0
+	speedup_stacks = 0
 	animation_elapsed = 0.0
 	facing_row = ANIM_ROW_FRONT
 	shoot_timer.wait_time = BASE_SHOOT_INTERVAL
@@ -142,6 +144,7 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 	var shot_count := int(weapon_data.get("shot_count", 4))
 	var angle_step := float(weapon_data.get("angle_step", 0.45))
 	var phase_step := float(weapon_data.get("phase_step", 0.35))
+	phase_step *= _get_spiral_combo_multiplier()
 	for i in shot_count:
 		var angle := spiral_phase + float(i) * angle_step
 		_spawn_bullet(
@@ -236,6 +239,7 @@ func apply_powerup(powerup_id: int) -> void:
 			_activate_weapon(int(powerup_data.get("weapon_id", -1)))
 		"speed":
 			speed = min(speed + float(powerup_data.get("value", 0.0)), MAX_PLAYER_SPEED)
+			speedup_stacks += 1
 		"shield":
 			var extra_lives := int(powerup_data.get("value", 1))
 			max_lives += extra_lives
@@ -264,7 +268,17 @@ func get_pattern_name() -> String:
 	var names: Array[String] = []
 	for weapon_id in active_weapons:
 		names.append(BHPowerups.get_weapon_name(weapon_id))
+	if _has_spiral_speed_combo():
+		names.append("COMBO: Turbo Spirala")
 	return ", ".join(names)
+
+func _has_spiral_speed_combo() -> bool:
+	return speedup_stacks > 0 and active_weapons.has(BHPowerups.WeaponId.SPIRAL_STREAM)
+
+func _get_spiral_combo_multiplier() -> float:
+	if not _has_spiral_speed_combo():
+		return 1.0
+	return 1.0 + min(0.2 * float(speedup_stacks), 0.8)
 
 func get_move_input() -> Vector2:
 	var dir := Vector2.ZERO
