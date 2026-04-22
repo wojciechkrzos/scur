@@ -21,6 +21,8 @@ enum MovementMode {
 @export var damage_flash_duration: float = 0.08
 @export_file("*.png", "*.webp") var standard_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_goon.png"
 @export_file("*.png", "*.webp") var tank_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_brute.png"
+@export var standard_frame_size: Vector2i = Vector2i(32, 32)
+@export var tank_frame_size: Vector2i = Vector2i(32, 32)
 
 var player_ref: Node2D
 var play_area: Rect2 = Rect2()
@@ -81,15 +83,15 @@ func _ready() -> void:
 	col.shape = shape
 	add_child(col)
 
-	var sprite_texture: Texture2D = _load_enemy_texture_for_kind()
+	var sprite_texture: Texture2D = _build_enemy_display_texture()
 	if sprite_texture != null:
-		var sprite := Sprite2D.new()
+		var sprite: Sprite2D = Sprite2D.new()
 		sprite.texture = sprite_texture
 		sprite.centered = true
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var source_size := sprite_texture.get_size()
+		var source_size: Vector2 = sprite_texture.get_size()
 		if source_size.x > 0.0 and source_size.y > 0.0:
-			var scale_ratio := min(body_size.x / source_size.x, body_size.y / source_size.y)
+			var scale_ratio: float = minf(body_size.x / source_size.x, body_size.y / source_size.y)
 			sprite.scale = Vector2(scale_ratio, scale_ratio)
 		add_child(sprite)
 	else:
@@ -215,6 +217,33 @@ func _die_with_flash() -> void:
 
 func _on_damage_flash_finished() -> void:
 	damage_flash_tween = null
+
+func _build_enemy_display_texture() -> Texture2D:
+	var texture: Texture2D = _load_enemy_texture_for_kind()
+	if texture == null:
+		return null
+
+	var frame_size: Vector2i = _get_enemy_frame_size()
+	if frame_size.x <= 0 or frame_size.y <= 0:
+		return texture
+
+	var texture_size: Vector2 = texture.get_size()
+	if texture_size.x < frame_size.x or texture_size.y < frame_size.y:
+		return texture
+
+	var atlas := AtlasTexture.new()
+	atlas.atlas = texture
+	atlas.region = Rect2(Vector2.ZERO, Vector2(frame_size.x, frame_size.y))
+	return atlas
+
+func _get_enemy_frame_size() -> Vector2i:
+	match enemy_kind:
+		EnemyKind.TANK:
+			return tank_frame_size
+		EnemyKind.STANDARD:
+			return standard_frame_size
+		_:
+			return Vector2i.ZERO
 
 func _load_enemy_texture_for_kind() -> Texture2D:
 	var path := ""
