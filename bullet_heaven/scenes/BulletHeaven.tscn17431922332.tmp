@@ -15,6 +15,7 @@ script = ExtResource("1_0h1")
 script = ExtResource("4_0h4")
 
 [node name="EnemyContainer" type="Node2D" parent="." unique_id=1702491970]
+visible = false
 
 [node name="PickupContainer" type="Node2D" parent="." unique_id=307697236]
 
@@ -53,42 +54,42 @@ offset_left = 12.0
 offset_top = 90.0
 offset_right = 120.0
 offset_bottom = 114.0
-text = "Poziom: 01"
+text = "Level: 01"
 
 [node name="ExperienceLabel" type="Label" parent="HUD" unique_id=472328116]
 offset_left = 12.0
 offset_top = 110.0
 offset_right = 170.0
 offset_bottom = 134.0
-text = "PD: 00 / 05"
+text = "XP: 00 / 05"
 
 [node name="LivesLabel" type="Label" parent="HUD" unique_id=636490051]
 offset_left = 12.0
 offset_top = 10.0
 offset_right = 120.0
 offset_bottom = 34.0
-text = "Życia: ♥ ♥ ♥"
+text = "Lives: ♥ ♥ ♥"
 
 [node name="KillsLabel" type="Label" parent="HUD" unique_id=1133086130]
 offset_left = 12.0
 offset_top = 30.0
 offset_right = 120.0
 offset_bottom = 54.0
-text = "Eliminacje: 0000"
+text = "Kills: 0000"
 
 [node name="TimerLabel" type="Label" parent="HUD" unique_id=1148597142]
 offset_left = 12.0
 offset_top = 50.0
 offset_right = 120.0
 offset_bottom = 74.0
-text = "Czas: 35.0"
+text = "Time: 35.0"
 
 [node name="PatternLabel" type="Label" parent="HUD" unique_id=973689906]
 offset_left = 12.0
 offset_top = 70.0
 offset_right = 200.0
 offset_bottom = 94.0
-text = "Tryb: IMPULS"
+text = "Pattern: AIMED FAN"
 
 [node name="ResultLabel" type="Label" parent="HUD" unique_id=1632523819]
 visible = false
@@ -96,7 +97,7 @@ offset_left = 120.0
 offset_top = 250.0
 offset_right = 360.0
 offset_bottom = 286.0
-text = "✦ ZWYCIĘSTWO ✦"
+text = "WAVE CLEAR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -119,12 +120,12 @@ theme_override_constants/separation = 8
 
 [node name="LevelUpTitle" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=200387801]
 layout_mode = 2
-text = "AWANS"
+text = "LEVEL UP"
 horizontal_alignment = 1
 
 [node name="LevelUpSubtitle" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1452663568]
 layout_mode = 2
-text = "Wybierz 1 z 3 ulepszeń"
+text = "Choose 1 of 3 powerups"
 horizontal_alignment = 1
 
 [node name="ChoiceRow" type="HBoxContainer" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1205547846]
@@ -134,22 +135,22 @@ theme_override_constants/separation = 8
 [node name="ChoiceButton1" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=278710398]
 custom_minimum_size = Vector2(120, 120)
 layout_mode = 2
-text = "Ulepszenie 1"
+text = "Weapon 1"
 autowrap_mode = 3
 
 [node name="ChoiceButton2" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=1152640106]
 custom_minimum_size = Vector2(120, 120)
 layout_mode = 2
-text = "Ulepszenie 2"
+text = "Weapon 2"
 autowrap_mode = 3
 
 [node name="ChoiceButton3" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=2036787672]
 custom_minimum_size = Vector2(120, 120)
 layout_mode = 2
-text = "Ulepszenie 3"
+text = "Weapon 3"
 autowrap_mode = 3
 
 [node name="LevelUpHint" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1140964023]
 layout_mode = 2
-text = "Gra zatrzymana do wyboru ulepszenia"
+text = "Paused until you pick an upgrade"
 horizontal_alignment = 1

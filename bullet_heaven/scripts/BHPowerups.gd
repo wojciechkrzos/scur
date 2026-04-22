@@ -16,20 +16,20 @@ enum PowerupId {
 
 const WEAPON_DEFINITIONS := {
 	WeaponId.AOE_PULSE: {
-		"name": "Weapon 1",
+		"name": "Impuls",
 		"fire_mode": "aoe_pulse",
 		"damage": 1,
 		"lifetime": 0.32,
 	},
 	WeaponId.VERTICAL_JET: {
-		"name": "Weapon 2",
+		"name": "Strumień",
 		"fire_mode": "vertical_jet",
 		"damage": 1,
 		"shot_speed": 270.0,
 		"offsets": [-10.0, 0.0, 10.0],
 	},
 	WeaponId.SPIRAL_STREAM: {
-		"name": "Weapon 3",
+		"name": "Spirala",
 		"fire_mode": "spiral_stream",
 		"damage": 1,
 		"shot_speed": 250.0,
@@ -41,32 +41,32 @@ const WEAPON_DEFINITIONS := {
 
 const POWERUP_DEFINITIONS := {
 	PowerupId.WEAPON_1: {
-		"name": "Weapon 1",
-		"description": "AOE pulse around the player",
+		"name": "Impuls",
+		"description": "Fala uderzeniowa wokół gracza",
 		"kind": "weapon",
 		"weapon_id": WeaponId.AOE_PULSE,
 	},
 	PowerupId.WEAPON_2: {
-		"name": "Weapon 2",
-		"description": "Vertical bullet jet",
+		"name": "Strumień",
+		"description": "Pionowa seria pocisków",
 		"kind": "weapon",
 		"weapon_id": WeaponId.VERTICAL_JET,
 	},
 	PowerupId.WEAPON_3: {
-		"name": "Weapon 3",
-		"description": "Rotating bullet spiral",
+		"name": "Spirala",
+		"description": "Obrotowa spirala pocisków",
 		"kind": "weapon",
 		"weapon_id": WeaponId.SPIRAL_STREAM,
 	},
 	PowerupId.SPEEDUP: {
-		"name": "Speedup",
-		"description": "Increase movement speed",
+		"name": "Przyspieszenie",
+		"description": "Zwiększa prędkość ruchu",
 		"kind": "speed",
 		"value": 30.0,
 	},
 	PowerupId.SHIELD: {
-		"name": "Shield",
-		"description": "Gain an extra life",
+		"name": "Tarcza",
+		"description": "Dodatkowe życie",
 		"kind": "shield",
 		"value": 1,
 	},

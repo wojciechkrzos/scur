@@ -4,7 +4,11 @@ extends Node2D
 
 #debug stage 1 na jutrzejszy pokaz
 const Stage1Flow = preload("res://Stage1Flow.gd")
+const StartMenuScene = preload("res://ui/StartMenu.tscn")
+const UI_FONT_PATH = "res://assets/fonts/PixelifySans-VariableFont_wght.ttf"
 var stage1_runner: Node = null
+var start_menu: CanvasLayer = null
+var ui_theme: Theme = null
 
 @onready var pause_menu = $PauseMenu
 
@@ -47,6 +51,8 @@ func _close_pause():
 	pause_menu.visible = false
 
 func _unhandled_input(event):
+	if is_instance_valid(start_menu) and start_menu.visible:
+		return
 	if event.is_action_pressed("ui_cancel"):
 		print("ESC OK")
 		if get_tree().paused:
@@ -60,6 +66,8 @@ func start_vn(id: String, choice_id: String = ""):
 	var data = load_dialogue(id, choice_id)  # ← przekaż
 	if dialogue_box.dialogue_finished.is_connected(_on_vn_finished):
 		dialogue_box.dialogue_finished.disconnect(_on_vn_finished)
+	if dialogue_box.has_method("set_dialogue_context"):
+		dialogue_box.set_dialogue_context(id)
 	dialogue_box.start_dialogue(data)
 	dialogue_box.dialogue_finished.connect(_on_vn_finished)
 	
@@ -144,13 +152,7 @@ func _start_stage1():
 	add_child(stage1_runner)
 	stage1_runner.start(self)
 
-func _ready() -> void:
-	pause_menu.resume_pressed.connect(_close_pause)
-	set_process_input(true)
-	set_process_unhandled_input(true)
-
-	print("MAIN READY")
-
+func _start_debug_flow() -> void:
 	if debug_mode == "stage1":
 		_start_stage1()
 		return
@@ -164,3 +166,53 @@ func _ready() -> void:
 			start_vn("test")
 		"boss":
 			start_boss_test("A")
+		_:
+			_start_stage1()
+
+func _on_start_pressed() -> void:
+	if is_instance_valid(start_menu):
+		start_menu.queue_free()
+		start_menu = null
+	_start_debug_flow()
+
+func _load_ui_font() -> FontFile:
+	var font_resource := load(UI_FONT_PATH)
+	if font_resource is FontFile:
+		return font_resource as FontFile
+	push_warning("UI font could not be loaded from: %s" % UI_FONT_PATH)
+	return null
+
+func _apply_ui_theme_to_controls(font: FontFile) -> void:
+	if font == null:
+		return
+
+	ThemeDB.fallback_font = font
+	ThemeDB.fallback_font_size = 24
+
+	ui_theme = Theme.new()
+	ui_theme.default_font = font
+	ui_theme.default_font_size = 24
+
+	var dialogue_root := dialogue_box.get_node_or_null("Root") as Control
+	if dialogue_root != null:
+		dialogue_root.theme = ui_theme
+
+	var pause_vbox := pause_menu.get_node_or_null("VBoxContainer") as Control
+	if pause_vbox != null:
+		pause_vbox.theme = ui_theme
+
+func _ready() -> void:
+	pause_menu.resume_pressed.connect(_close_pause)
+	set_process_input(true)
+	set_process_unhandled_input(true)
+
+	var ui_font := _load_ui_font()
+	_apply_ui_theme_to_controls(ui_font)
+
+	print("MAIN READY")
+	start_menu = StartMenuScene.instantiate()
+	add_child(start_menu)
+	var start_root := start_menu.get_node_or_null("Root") as Control
+	if start_root != null and ui_theme != null:
+		start_root.theme = ui_theme
+	start_menu.start_pressed.connect(_on_start_pressed)

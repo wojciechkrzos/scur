@@ -94,7 +94,7 @@ func get_lines():
 				{
 					"id": "choice_join",
 					"text": "Ile płacisz?",
-					"jump_to": 20
+					"jump_to": 21
 				}
 			]
 		},

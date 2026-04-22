@@ -13,7 +13,7 @@ enum WinCondition { SURVIVE, KILL }
 @export var boss_max_hp: float = 200.0
 
 # ── Rozmiar planszy (stały prostokąt jak w Touhou) ──────────────────────────
-const PLAY_AREA_RECT := Rect2(20, 20, 440, 500)
+const PLAY_AREA_SIZE := Vector2(440, 500)
 
 # ── Konfiguracje bossów ─────────────────────────────────────────────────────
 # Żeby dodać nowego bossa: skopiuj słownik, zmień parametry i patterns[]
@@ -61,6 +61,7 @@ signal fight_ended(result: String)  # "win" lub "lose"
 var score: int = 0
 var time_remaining: float = 0.0
 var fight_active: bool = false
+var play_area_rect: Rect2 = Rect2(20, 20, PLAY_AREA_SIZE.x, PLAY_AREA_SIZE.y)
 
 @onready var player = $Player
 @onready var boss = $Boss
@@ -81,9 +82,12 @@ func start_fight(config: Dictionary) -> void:
 	time_limit    = config.get("time", 30.0)
 	time_remaining = time_limit
 	fight_active  = true
+	var viewport_rect := get_viewport_rect()
+	var play_top_left := (viewport_rect.size - PLAY_AREA_SIZE) * 0.5
+	play_area_rect = Rect2(play_top_left, PLAY_AREA_SIZE)
 	
-	boss.setup(boss_max_hp, PLAY_AREA_RECT, config.get("patterns", []))
-	player.setup(PLAY_AREA_RECT, player_bullet_container)
+	boss.setup(boss_max_hp, play_area_rect, config.get("patterns", []))
+	player.setup(play_area_rect, player_bullet_container)
 	boss.player_ref = player
 	hud.setup(win_condition, time_limit, boss_max_hp)
 	_draw_play_area()
@@ -147,14 +151,14 @@ func _on_player_scored(points: int) -> void:
 
 func _on_boss_bullet_spawned(bullet: Node2D) -> void:
 	bullet_container.add_child(bullet)
-	bullet.play_area = PLAY_AREA_RECT
+	bullet.play_area = play_area_rect
 	# Połącz kolizję z graczem
 	bullet.area_entered.connect(_on_enemy_bullet_hit_player.bind(bullet))
 
 
 func _on_player_bullet_spawned(bullet: Node2D) -> void:
 	player_bullet_container.add_child(bullet)
-	bullet.play_area = PLAY_AREA_RECT
+	bullet.play_area = play_area_rect
 	bullet.area_entered.connect(_on_player_bullet_hit_boss.bind(bullet))
 
 
@@ -189,6 +193,9 @@ func _end_fight(result: String) -> void:
 		b.queue_free()
 	for b in player_bullet_container.get_children():
 		b.queue_free()
+	for child in get_children():
+		if child.has_meta("play_area_visual"):
+			child.queue_free()
 	
 	hud.show_result(result)
 	
@@ -202,15 +209,17 @@ func _end_fight(result: String) -> void:
 func _draw_play_area() -> void:
 	var border = ColorRect.new()
 	border.color = Color(0.04, 0.04, 0.08, 1.0)
-	border.size = PLAY_AREA_RECT.size
-	border.position = PLAY_AREA_RECT.position
+	border.size = play_area_rect.size
+	border.position = play_area_rect.position
+	border.set_meta("play_area_visual", true)
 	add_child(border)
 	move_child(border, 0)  # Na spód hierarchii
 	
 	# Obramowanie (jasna ramka)
 	var frame = ColorRect.new()
 	frame.color = Color(0.3, 0.3, 0.5, 1.0)
-	frame.size = PLAY_AREA_RECT.size + Vector2(4, 4)
-	frame.position = PLAY_AREA_RECT.position - Vector2(2, 2)
+	frame.size = play_area_rect.size + Vector2(4, 4)
+	frame.position = play_area_rect.position - Vector2(2, 2)
+	frame.set_meta("play_area_visual", true)
 	add_child(frame)
 	move_child(frame, 0)
