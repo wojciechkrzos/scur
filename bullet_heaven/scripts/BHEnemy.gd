@@ -13,6 +13,12 @@ enum MovementMode {
 	LINE,
 }
 
+enum AnimState {
+	IDLE,
+	WALK,
+	ATTACK,
+}
+
 @export var enemy_kind: EnemyKind = EnemyKind.STANDARD
 @export var speed: float = 85.0
 @export var hp: int = 1
@@ -22,7 +28,20 @@ enum MovementMode {
 @export_file("*.png", "*.webp") var standard_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_goon.png"
 @export_file("*.png", "*.webp") var tank_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_brute.png"
 @export var standard_frame_size: Vector2i = Vector2i(32, 32)
-@export var tank_frame_size: Vector2i = Vector2i(32, 32)
+@export var tank_frame_size: Vector2i = Vector2i(48, 32)
+@export var standard_visual_scale_multiplier: float = 7.6
+@export var tank_visual_scale_multiplier: float = 10.4
+@export var swarm_visual_scale_multiplier: float = 7.2
+@export var attack_animation_proximity: float = 115.0
+@export var standard_walk_row: int = 0
+@export var standard_attack_row: int = 1
+@export var tank_walk_row: int = 0
+@export var tank_attack_row: int = 1
+@export var standard_walk_fps: float = 10.0
+@export var standard_attack_fps: float = 14.0
+@export var tank_walk_fps: float = 8.0
+@export var tank_attack_fps: float = 11.0
+@export var movement_epsilon: float = 0.02
 
 var player_ref: Node2D
 var play_area: Rect2 = Rect2()
@@ -36,6 +55,10 @@ var damage_flash_overlay: ColorRect
 var body_color: Color = Color(0.9, 0.2, 0.2, 1.0)
 var body_size: Vector2 = Vector2(16, 16)
 var collision_radius: float = 8.0
+var enemy_sprite: Sprite2D
+var current_anim_state: AnimState = AnimState.IDLE
+var enemy_anim_elapsed: float = 0.0
+var enemy_anim_frame: int = 0
 
 func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Vector2.ZERO, obstacles: Node2D = null) -> void:
 	enemy_kind = kind
@@ -83,17 +106,12 @@ func _ready() -> void:
 	col.shape = shape
 	add_child(col)
 
-	var sprite_texture: Texture2D = _build_enemy_display_texture()
+	var sprite_texture: Texture2D = _load_enemy_texture_for_kind()
 	if sprite_texture != null:
-		var sprite: Sprite2D = Sprite2D.new()
-		sprite.texture = sprite_texture
-		sprite.centered = true
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var source_size: Vector2 = sprite_texture.get_size()
-		if source_size.x > 0.0 and source_size.y > 0.0:
-			var scale_ratio: float = minf(body_size.x / source_size.x, body_size.y / source_size.y)
-			sprite.scale = Vector2(scale_ratio, scale_ratio)
-		add_child(sprite)
+		enemy_sprite = _create_enemy_sprite(sprite_texture)
+		if enemy_sprite != null:
+			add_child(enemy_sprite)
+			_apply_animation_frame()
 	else:
 		var vis = ColorRect.new()
 		vis.size = body_size
@@ -110,6 +128,7 @@ func _ready() -> void:
 	add_child(damage_flash_overlay)
 
 func _process(delta: float) -> void:
+	var previous_position: Vector2 = global_position
 	match movement_mode:
 		MovementMode.HOMING:
 			if player_ref == null:
@@ -128,6 +147,13 @@ func _process(delta: float) -> void:
 				global_position = line_target
 			if _is_outside_play_area(140.0):
 				queue_free()
+
+	var movement_delta: Vector2 = global_position - previous_position
+	var moved_this_frame: bool = movement_delta.length_squared() > movement_epsilon * movement_epsilon
+	var distance_to_player: float = INF
+	if player_ref != null:
+		distance_to_player = global_position.distance_to(player_ref.global_position)
+	_update_animation(delta, moved_this_frame, distance_to_player, movement_delta)
 
 func _would_overlap_obstacle(target_position: Vector2) -> bool:
 	if obstacle_container == null:
@@ -218,23 +244,30 @@ func _die_with_flash() -> void:
 func _on_damage_flash_finished() -> void:
 	damage_flash_tween = null
 
-func _build_enemy_display_texture() -> Texture2D:
-	var texture: Texture2D = _load_enemy_texture_for_kind()
-	if texture == null:
-		return null
-
+func _create_enemy_sprite(texture: Texture2D) -> Sprite2D:
 	var frame_size: Vector2i = _get_enemy_frame_size()
 	if frame_size.x <= 0 or frame_size.y <= 0:
-		return texture
+		return null
 
 	var texture_size: Vector2 = texture.get_size()
 	if texture_size.x < frame_size.x or texture_size.y < frame_size.y:
-		return texture
+		return null
 
-	var atlas := AtlasTexture.new()
-	atlas.atlas = texture
-	atlas.region = Rect2(Vector2.ZERO, Vector2(frame_size.x, frame_size.y))
-	return atlas
+	var columns: int = maxi(int(texture_size.x / float(frame_size.x)), 1)
+	var rows: int = maxi(int(texture_size.y / float(frame_size.y)), 1)
+
+	var sprite: Sprite2D = Sprite2D.new()
+	sprite.texture = texture
+	sprite.centered = true
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.hframes = columns
+	sprite.vframes = rows
+	sprite.frame_coords = Vector2i(0, 0)
+
+	var target_size: Vector2 = body_size * _get_visual_scale_multiplier_for_kind()
+	var scale_ratio: float = minf(target_size.x / float(frame_size.x), target_size.y / float(frame_size.y))
+	sprite.scale = Vector2(scale_ratio, scale_ratio)
+	return sprite
 
 func _get_enemy_frame_size() -> Vector2i:
 	match enemy_kind:
@@ -244,6 +277,15 @@ func _get_enemy_frame_size() -> Vector2i:
 			return standard_frame_size
 		_:
 			return Vector2i.ZERO
+
+func _get_visual_scale_multiplier_for_kind() -> float:
+	match enemy_kind:
+		EnemyKind.TANK:
+			return maxf(tank_visual_scale_multiplier, 0.1)
+		EnemyKind.SWARM:
+			return maxf(swarm_visual_scale_multiplier, 0.1)
+		_:
+			return maxf(standard_visual_scale_multiplier, 0.1)
 
 func _load_enemy_texture_for_kind() -> Texture2D:
 	var path := ""
@@ -262,3 +304,80 @@ func _load_enemy_texture_for_kind() -> Texture2D:
 		if resource is Texture2D:
 			return resource as Texture2D
 	return null
+
+func _update_animation(delta: float, moved_this_frame: bool, distance_to_player: float, movement_delta: Vector2) -> void:
+	if enemy_sprite == null:
+		return
+
+	if absf(movement_delta.x) > movement_epsilon:
+		enemy_sprite.flip_h = movement_delta.x < 0.0
+
+	var in_attack_range: bool = distance_to_player <= attack_animation_proximity
+	var next_state: AnimState = AnimState.IDLE
+	if in_attack_range:
+		next_state = AnimState.ATTACK
+	elif moved_this_frame:
+		next_state = AnimState.WALK
+
+	if next_state != current_anim_state:
+		current_anim_state = next_state
+		enemy_anim_elapsed = 0.0
+		enemy_anim_frame = 0
+
+	if current_anim_state == AnimState.IDLE:
+		enemy_anim_frame = 0
+		_apply_animation_frame()
+		return
+
+	var fps: float = _get_animation_fps(current_anim_state)
+	var frame_count: int = _get_animation_frame_count()
+	if frame_count <= 0:
+		enemy_anim_frame = 0
+		_apply_animation_frame()
+		return
+
+	enemy_anim_elapsed += delta * maxf(fps, 1.0)
+	enemy_anim_frame = int(floor(enemy_anim_elapsed)) % frame_count
+	_apply_animation_frame()
+
+func _apply_animation_frame() -> void:
+	if enemy_sprite == null:
+		return
+
+	var row: int = _get_animation_row(current_anim_state)
+	row = clampi(row, 0, maxi(enemy_sprite.vframes - 1, 0))
+	var frame: int = clampi(enemy_anim_frame, 0, maxi(enemy_sprite.hframes - 1, 0))
+	if current_anim_state == AnimState.IDLE:
+		frame = 0
+	enemy_sprite.frame_coords = Vector2i(frame, row)
+
+func _get_animation_row(state: AnimState) -> int:
+	match enemy_kind:
+		EnemyKind.TANK:
+			if state == AnimState.ATTACK:
+				return tank_attack_row
+			return tank_walk_row
+		EnemyKind.STANDARD:
+			if state == AnimState.ATTACK:
+				return standard_attack_row
+			return standard_walk_row
+		_:
+			return 0
+
+func _get_animation_fps(state: AnimState) -> float:
+	match enemy_kind:
+		EnemyKind.TANK:
+			if state == AnimState.ATTACK:
+				return tank_attack_fps
+			return tank_walk_fps
+		EnemyKind.STANDARD:
+			if state == AnimState.ATTACK:
+				return standard_attack_fps
+			return standard_walk_fps
+		_:
+			return 8.0
+
+func _get_animation_frame_count() -> int:
+	if enemy_sprite == null:
+		return 0
+	return maxi(enemy_sprite.hframes, 1)
