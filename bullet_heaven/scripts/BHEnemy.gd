@@ -19,6 +19,8 @@ enum MovementMode {
 @export var xp_value: int = 1
 @export var damage_flash_color: Color = Color(1.0, 0.95, 0.95, 1.0)
 @export var damage_flash_duration: float = 0.08
+@export_file("*.png", "*.webp") var standard_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_goon.png"
+@export_file("*.png", "*.webp") var tank_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_brute.png"
 
 var player_ref: Node2D
 var play_area: Rect2 = Rect2()
@@ -79,11 +81,23 @@ func _ready() -> void:
 	col.shape = shape
 	add_child(col)
 
-	var vis = ColorRect.new()
-	vis.size = body_size
-	vis.position = -body_size * 0.5
-	vis.color = body_color
-	add_child(vis)
+	var sprite_texture: Texture2D = _load_enemy_texture_for_kind()
+	if sprite_texture != null:
+		var sprite := Sprite2D.new()
+		sprite.texture = sprite_texture
+		sprite.centered = true
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var source_size := sprite_texture.get_size()
+		if source_size.x > 0.0 and source_size.y > 0.0:
+			var scale_ratio := min(body_size.x / source_size.x, body_size.y / source_size.y)
+			sprite.scale = Vector2(scale_ratio, scale_ratio)
+		add_child(sprite)
+	else:
+		var vis = ColorRect.new()
+		vis.size = body_size
+		vis.position = -body_size * 0.5
+		vis.color = body_color
+		add_child(vis)
 
 	damage_flash_overlay = ColorRect.new()
 	damage_flash_overlay.size = body_size
@@ -201,3 +215,21 @@ func _die_with_flash() -> void:
 
 func _on_damage_flash_finished() -> void:
 	damage_flash_tween = null
+
+func _load_enemy_texture_for_kind() -> Texture2D:
+	var path := ""
+	match enemy_kind:
+		EnemyKind.TANK:
+			path = tank_enemy_texture_path
+		EnemyKind.STANDARD:
+			path = standard_enemy_texture_path
+		_:
+			return null
+
+	if path.is_empty():
+		return null
+	if ResourceLoader.exists(path):
+		var resource := ResourceLoader.load(path)
+		if resource is Texture2D:
+			return resource as Texture2D
+	return null
