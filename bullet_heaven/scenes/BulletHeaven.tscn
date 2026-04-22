@@ -149,6 +149,25 @@ layout_mode = 2
 text = "Ulepszenie 3"
 autowrap_mode = 3
 
+[node name="TokenRow" type="HBoxContainer" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TokenLabel" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Tokeny: Reroll 1  •  Skip 1"
+
+[node name="RerollButton" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Reroll"
+
+[node name="SkipButton" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Skip"
+
 [node name="LevelUpHint" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1140964023]
 layout_mode = 2
 text = "Gra zatrzymana do wyboru ulepszenia"

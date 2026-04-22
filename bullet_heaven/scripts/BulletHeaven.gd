@@ -4,6 +4,7 @@ signal fight_ended(result: String)
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
+const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 
@@ -29,6 +30,7 @@ const TANK_SPAWN_CHANCE := 0.2
 const SWARM_EVENT_INTERVAL := 12.0
 const SWARM_EVENT_ENEMY_COUNT := 9
 const SWARM_EDGE_MARGIN := 18.0
+const TOKEN_DROP_CHANCE := 0.005
 
 var fight_active: bool = false
 var time_remaining: float = 0.0
@@ -60,6 +62,9 @@ var level_up_dimmer: ColorRect
 @onready var choice_button_1 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton1
 @onready var choice_button_2 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton2
 @onready var choice_button_3 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton3
+@onready var level_up_tokens_label = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/TokenLabel
+@onready var reroll_button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/RerollButton
+@onready var skip_button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/SkipButton
 
 func get_stage_type() -> String:
 	return "heaven"
@@ -118,6 +123,8 @@ func _ready() -> void:
 	choice_button_1.pressed.connect(_on_choice_button_1_pressed)
 	choice_button_2.pressed.connect(_on_choice_button_2_pressed)
 	choice_button_3.pressed.connect(_on_choice_button_3_pressed)
+	reroll_button.pressed.connect(_on_reroll_button_pressed)
+	skip_button.pressed.connect(_on_skip_button_pressed)
 	level_up_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	level_up_panel.visible = false
@@ -252,6 +259,17 @@ func _on_player_area_entered(area: Area2D) -> void:
 		if area.has_method("get_xp_amount"):
 			player.add_experience(area.get_xp_amount())
 		area.queue_free()
+		return
+
+	if area.is_in_group("bh_token_pickup"):
+		if area.has_method("get_token_type"):
+			var token_type: int = int(area.get_token_type())
+			if token_type == BHTokenPickupScript.TokenType.SKIP:
+				player.add_skip_tokens(1)
+			else:
+				player.add_reroll_tokens(1)
+		_update_token_ui()
+		area.queue_free()
 
 func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 	if not fight_active:
@@ -271,6 +289,7 @@ func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 func _on_enemy_died(enemy: Area2D) -> void:
 	kills += 1
 	_spawn_xp_pellet(enemy.global_position, enemy.xp_value)
+	_try_spawn_levelup_token(enemy.global_position)
 
 func _on_player_died() -> void:
 	_end_fight("lose")
@@ -318,6 +337,7 @@ func _open_level_up_ui(current_level: int) -> void:
 			button.set_meta("powerup_id", powerup_id)
 		else:
 			button.visible = false
+	_update_token_ui()
 
 	level_up_panel.visible = true
 	if level_up_dimmer != null:
@@ -374,6 +394,26 @@ func _setup_level_up_ui_styles() -> void:
 	level_up_subtitle.add_theme_font_size_override("font_size", 20)
 	level_up_hint.add_theme_font_size_override("font_size", 18)
 	level_up_hint.modulate = Color(0.86, 0.91, 1.0, 0.92)
+	level_up_tokens_label.add_theme_font_size_override("font_size", 19)
+	level_up_tokens_label.modulate = Color(0.94, 0.95, 1.0, 1.0)
+
+	var utility_style := StyleBoxFlat.new()
+	utility_style.bg_color = Color(0.15, 0.16, 0.21, 1.0)
+	utility_style.border_color = Color(0.72, 0.74, 0.84, 1.0)
+	utility_style.border_width_left = 2
+	utility_style.border_width_top = 2
+	utility_style.border_width_right = 2
+	utility_style.border_width_bottom = 2
+	utility_style.corner_radius_top_left = 8
+	utility_style.corner_radius_top_right = 8
+	utility_style.corner_radius_bottom_left = 8
+	utility_style.corner_radius_bottom_right = 8
+	reroll_button.add_theme_stylebox_override("normal", utility_style)
+	skip_button.add_theme_stylebox_override("normal", utility_style)
+	reroll_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
+	skip_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
+	reroll_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4, 1.0))
+	skip_button.add_theme_color_override("font_color", Color(0.56, 0.82, 1.0, 1.0))
 
 func _format_powerup_card_text(powerup_id: int) -> String:
 	var name := BHPowerups.get_powerup_name(powerup_id)
@@ -434,6 +474,53 @@ func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
 	button.add_theme_stylebox_override("hover", hover_style)
 	button.add_theme_stylebox_override("pressed", pressed_style)
 	button.add_theme_color_override("font_color", Color(0.97, 0.98, 1.0, 1.0))
+
+func _update_token_ui() -> void:
+	if level_up_tokens_label == null:
+		return
+
+	var rerolls := player.get_reroll_tokens()
+	var skips := player.get_skip_tokens()
+	level_up_tokens_label.text = "Tokeny: Reroll %d  •  Skip %d" % [rerolls, skips]
+	if reroll_button != null:
+		reroll_button.disabled = rerolls <= 0
+	if skip_button != null:
+		skip_button.disabled = skips <= 0
+
+func _on_reroll_button_pressed() -> void:
+	if not level_up_panel.visible:
+		return
+	if not player.consume_reroll_token():
+		_update_token_ui()
+		return
+
+	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
+	_open_level_up_ui(player.level)
+
+func _on_skip_button_pressed() -> void:
+	if not level_up_panel.visible:
+		return
+	if not player.consume_skip_token():
+		_update_token_ui()
+		return
+
+	pending_level_ups = max(pending_level_ups - 1, 0)
+	current_powerup_choices.clear()
+	get_tree().paused = false
+	_hide_level_up_ui()
+	if pending_level_ups > 0:
+		call_deferred("_resume_level_up_sequence")
+
+func _try_spawn_levelup_token(spawn_position: Vector2) -> void:
+	if randf() > TOKEN_DROP_CHANCE:
+		return
+
+	var token := BHTokenPickupScript.new()
+	token.token_type = BHTokenPickupScript.TokenType.REROLL
+	if randf() < 0.5:
+		token.token_type = BHTokenPickupScript.TokenType.SKIP
+	token.position = pickup_container.to_local(spawn_position)
+	pickup_container.call_deferred("add_child", token)
 
 func _resume_level_up_sequence() -> void:
 	if pending_level_ups <= 0:

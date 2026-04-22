@@ -42,6 +42,8 @@ var bullet_container: Node2D
 var active_weapons: Array[int] = []
 var spiral_phase: float = 0.0
 var speedup_stacks: int = 0
+var reroll_tokens: int = 1
+var skip_tokens: int = 1
 var anchor_position: Vector2 = Vector2.ZERO
 var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
@@ -73,6 +75,8 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	active_weapons = [BHPowerups.WeaponId.AOE_PULSE]
 	spiral_phase = 0.0
 	speedup_stacks = 0
+	reroll_tokens = 1
+	skip_tokens = 1
 	animation_elapsed = 0.0
 	facing_row = ANIM_ROW_FRONT
 	shoot_timer.wait_time = BASE_SHOOT_INTERVAL
@@ -251,6 +255,34 @@ func apply_powerup(powerup_id: int) -> void:
 
 func get_owned_weapon_ids() -> Array[int]:
 	return active_weapons.duplicate()
+
+func get_reroll_tokens() -> int:
+	return reroll_tokens
+
+func get_skip_tokens() -> int:
+	return skip_tokens
+
+func add_reroll_tokens(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	reroll_tokens += amount
+
+func add_skip_tokens(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	skip_tokens += amount
+
+func consume_reroll_token() -> bool:
+	if reroll_tokens <= 0:
+		return false
+	reroll_tokens -= 1
+	return true
+
+func consume_skip_token() -> bool:
+	if skip_tokens <= 0:
+		return false
+	skip_tokens -= 1
+	return true
 
 func _activate_weapon(weapon_id: int) -> void:
 	if weapon_id == -1:
