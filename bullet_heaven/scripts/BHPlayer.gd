@@ -7,6 +7,8 @@ signal leveled_up(new_level: int)
 
 const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
+const BHHomingMissileScript = preload("res://bullet_heaven/scripts/BHHomingMissile.gd")
+const BHMolotovProjectileScript = preload("res://bullet_heaven/scripts/BHMolotovProjectile.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 
 const BASE_SPEED := 230.0
@@ -108,6 +110,12 @@ func _fire_weapon(weapon_id: int) -> void:
 			_fire_vertical_jet(weapon_data)
 		"spiral_stream":
 			_fire_spiral_stream(weapon_data)
+		"homing_missile":
+			_fire_homing_missile(weapon_data)
+		"molotov_bomb":
+			_fire_molotov_bomb(weapon_data)
+		"fan_burst":
+			_fire_fan_burst(weapon_data)
 		_:
 			pass
 
@@ -143,6 +151,38 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 			int(weapon_data.get("damage", 1))
 		)
 	spiral_phase += phase_step
+
+func _fire_homing_missile(weapon_data: Dictionary) -> void:
+	var missile = BHHomingMissileScript.new()
+	missile.position = position
+	missile.direction = Vector2.UP
+	missile.speed = float(weapon_data.get("shot_speed", missile.speed))
+	missile.turn_rate = float(weapon_data.get("turn_rate", missile.turn_rate))
+	missile.damage = int(weapon_data.get("damage", missile.damage))
+	missile.max_range = float(weapon_data.get("range", missile.max_range))
+	shot_spawned.emit(missile)
+
+func _fire_molotov_bomb(weapon_data: Dictionary) -> void:
+	var molotov = BHMolotovProjectileScript.new()
+	molotov.position = position + Vector2(0.0, -16.0)
+	molotov.direction = Vector2.UP
+	molotov.speed = float(weapon_data.get("shot_speed", molotov.speed))
+	molotov.damage = int(weapon_data.get("damage", molotov.damage))
+	molotov.max_distance = float(weapon_data.get("distance", molotov.max_distance))
+	molotov.explosion_damage = int(weapon_data.get("explosion_damage", molotov.explosion_damage))
+	molotov.explosion_radius = float(weapon_data.get("explosion_radius", molotov.explosion_radius))
+	shot_spawned.emit(molotov)
+
+func _fire_fan_burst(weapon_data: Dictionary) -> void:
+	var spread_angles: Array = weapon_data.get("angles", [0.0])
+	for raw_angle in spread_angles:
+		var angle := float(raw_angle)
+		_spawn_bullet(
+			position,
+			Vector2.UP.rotated(angle),
+			float(weapon_data.get("shot_speed", 280.0)),
+			int(weapon_data.get("damage", 1))
+		)
 
 func _spawn_bullet(shot_position: Vector2, direction: Vector2, shot_speed: float, damage: int) -> void:
 	var shot = BHShotScript.new()

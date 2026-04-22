@@ -71,6 +71,7 @@ func _apply_kind_stats() -> void:
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 2 | 3
+	add_to_group("bh_enemy")
 
 	var col = CollisionShape2D.new()
 	var shape = CircleShape2D.new()
