@@ -7,6 +7,7 @@ var speed: float = 220.0
 var damage: int = 1
 var explosion_damage: int = 3
 var explosion_radius: float = 84.0
+var explosion_lifetime: float = 1.4
 var max_distance: float = 430.0
 var travelled_distance: float = 0.0
 var lifetime_after_explosion: float = 0.01
@@ -78,6 +79,7 @@ func _explode() -> void:
 	var explosion := BHExplosionScript.new()
 	explosion.damage = explosion_damage
 	explosion.radius = explosion_radius
+	explosion.lifetime = explosion_lifetime
 	explosion.anchor_ref = anchor_ref
 	if get_parent() != null:
 		get_parent().add_child(explosion)

@@ -172,12 +172,13 @@ func _fire_homing_missile(weapon_data: Dictionary) -> void:
 func _fire_molotov_bomb(weapon_data: Dictionary) -> void:
 	var molotov = BHMolotovProjectileScript.new()
 	molotov.position = position + Vector2(0.0, -16.0)
-	molotov.direction = Vector2.UP
+	molotov.direction = Vector2.from_angle(randf_range(0.0, TAU))
 	molotov.speed = float(weapon_data.get("shot_speed", molotov.speed))
 	molotov.damage = int(weapon_data.get("damage", molotov.damage))
 	molotov.max_distance = float(weapon_data.get("distance", molotov.max_distance))
 	molotov.explosion_damage = int(weapon_data.get("explosion_damage", molotov.explosion_damage))
 	molotov.explosion_radius = float(weapon_data.get("explosion_radius", molotov.explosion_radius))
+	molotov.explosion_lifetime = float(weapon_data.get("explosion_lifetime", molotov.explosion_lifetime))
 	shot_spawned.emit(molotov)
 
 func _fire_fan_burst(weapon_data: Dictionary) -> void:

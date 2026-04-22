@@ -55,10 +55,11 @@ const WEAPON_DEFINITIONS := {
 		"name": "Koktajl Mołotowa",
 		"fire_mode": "molotov_bomb",
 		"damage": 1,
-		"shot_speed": 220.0,
+		"shot_speed": 145.0,
 		"distance": 430.0,
 		"explosion_damage": 3,
 		"explosion_radius": 84.0,
+		"explosion_lifetime": 1.4,
 	},
 	WeaponId.FAN_BURST: {
 		"name": "Stożek Odłamków",
