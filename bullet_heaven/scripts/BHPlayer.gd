@@ -7,6 +7,8 @@ signal leveled_up(new_level: int)
 
 const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
+const BHHomingMissileScript = preload("res://bullet_heaven/scripts/BHHomingMissile.gd")
+const BHMolotovProjectileScript = preload("res://bullet_heaven/scripts/BHMolotovProjectile.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 
 const BASE_SPEED := 230.0
@@ -39,6 +41,9 @@ var play_area: Rect2
 var bullet_container: Node2D
 var active_weapons: Array[int] = []
 var spiral_phase: float = 0.0
+var speedup_stacks: int = 0
+var reroll_tokens: int = 1
+var skip_tokens: int = 1
 var anchor_position: Vector2 = Vector2.ZERO
 var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
@@ -69,6 +74,9 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	position = anchor_position
 	active_weapons = [BHPowerups.WeaponId.AOE_PULSE]
 	spiral_phase = 0.0
+	speedup_stacks = 0
+	reroll_tokens = 1
+	skip_tokens = 1
 	animation_elapsed = 0.0
 	facing_row = ANIM_ROW_FRONT
 	shoot_timer.wait_time = BASE_SHOOT_INTERVAL
@@ -108,6 +116,12 @@ func _fire_weapon(weapon_id: int) -> void:
 			_fire_vertical_jet(weapon_data)
 		"spiral_stream":
 			_fire_spiral_stream(weapon_data)
+		"homing_missile":
+			_fire_homing_missile(weapon_data)
+		"molotov_bomb":
+			_fire_molotov_bomb(weapon_data)
+		"fan_burst":
+			_fire_fan_burst(weapon_data)
 		_:
 			pass
 
@@ -134,6 +148,7 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 	var shot_count := int(weapon_data.get("shot_count", 4))
 	var angle_step := float(weapon_data.get("angle_step", 0.45))
 	var phase_step := float(weapon_data.get("phase_step", 0.35))
+	phase_step *= _get_spiral_combo_multiplier()
 	for i in shot_count:
 		var angle := spiral_phase + float(i) * angle_step
 		_spawn_bullet(
@@ -143,6 +158,39 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 			int(weapon_data.get("damage", 1))
 		)
 	spiral_phase += phase_step
+
+func _fire_homing_missile(weapon_data: Dictionary) -> void:
+	var missile = BHHomingMissileScript.new()
+	missile.position = position
+	missile.direction = Vector2.UP
+	missile.speed = float(weapon_data.get("shot_speed", missile.speed))
+	missile.turn_rate = float(weapon_data.get("turn_rate", missile.turn_rate))
+	missile.damage = int(weapon_data.get("damage", missile.damage))
+	missile.max_range = float(weapon_data.get("range", missile.max_range))
+	shot_spawned.emit(missile)
+
+func _fire_molotov_bomb(weapon_data: Dictionary) -> void:
+	var molotov = BHMolotovProjectileScript.new()
+	molotov.position = position + Vector2(0.0, -16.0)
+	molotov.direction = Vector2.from_angle(randf_range(0.0, TAU))
+	molotov.speed = float(weapon_data.get("shot_speed", molotov.speed))
+	molotov.damage = int(weapon_data.get("damage", molotov.damage))
+	molotov.max_distance = float(weapon_data.get("distance", molotov.max_distance))
+	molotov.explosion_damage = int(weapon_data.get("explosion_damage", molotov.explosion_damage))
+	molotov.explosion_radius = float(weapon_data.get("explosion_radius", molotov.explosion_radius))
+	molotov.explosion_lifetime = float(weapon_data.get("explosion_lifetime", molotov.explosion_lifetime))
+	shot_spawned.emit(molotov)
+
+func _fire_fan_burst(weapon_data: Dictionary) -> void:
+	var spread_angles: Array = weapon_data.get("angles", [0.0])
+	for raw_angle in spread_angles:
+		var angle := float(raw_angle)
+		_spawn_bullet(
+			position,
+			Vector2.UP.rotated(angle),
+			float(weapon_data.get("shot_speed", 280.0)),
+			int(weapon_data.get("damage", 1))
+		)
 
 func _spawn_bullet(shot_position: Vector2, direction: Vector2, shot_speed: float, damage: int) -> void:
 	var shot = BHShotScript.new()
@@ -196,6 +244,7 @@ func apply_powerup(powerup_id: int) -> void:
 			_activate_weapon(int(powerup_data.get("weapon_id", -1)))
 		"speed":
 			speed = min(speed + float(powerup_data.get("value", 0.0)), MAX_PLAYER_SPEED)
+			speedup_stacks += 1
 		"shield":
 			var extra_lives := int(powerup_data.get("value", 1))
 			max_lives += extra_lives
@@ -207,6 +256,34 @@ func apply_powerup(powerup_id: int) -> void:
 
 func get_owned_weapon_ids() -> Array[int]:
 	return active_weapons.duplicate()
+
+func get_reroll_tokens() -> int:
+	return reroll_tokens
+
+func get_skip_tokens() -> int:
+	return skip_tokens
+
+func add_reroll_tokens(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	reroll_tokens += amount
+
+func add_skip_tokens(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	skip_tokens += amount
+
+func consume_reroll_token() -> bool:
+	if reroll_tokens <= 0:
+		return false
+	reroll_tokens -= 1
+	return true
+
+func consume_skip_token() -> bool:
+	if skip_tokens <= 0:
+		return false
+	skip_tokens -= 1
+	return true
 
 func _activate_weapon(weapon_id: int) -> void:
 	if weapon_id == -1:
@@ -224,7 +301,17 @@ func get_pattern_name() -> String:
 	var names: Array[String] = []
 	for weapon_id in active_weapons:
 		names.append(BHPowerups.get_weapon_name(weapon_id))
+	if _has_spiral_speed_combo():
+		names.append("COMBO: Turbo Spirala")
 	return ", ".join(names)
+
+func _has_spiral_speed_combo() -> bool:
+	return speedup_stacks > 0 and active_weapons.has(BHPowerups.WeaponId.SPIRAL_STREAM)
+
+func _get_spiral_combo_multiplier() -> float:
+	if not _has_spiral_speed_combo():
+		return 1.0
+	return 1.0 + min(0.2 * float(speedup_stacks), 0.8)
 
 func get_move_input() -> Vector2:
 	var dir := Vector2.ZERO

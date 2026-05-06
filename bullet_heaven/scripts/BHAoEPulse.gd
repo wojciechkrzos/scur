@@ -16,12 +16,11 @@ func _ready() -> void:
 	shape.radius = 54.0
 	collision.shape = shape
 	add_child(collision)
+	queue_redraw()
 
-	var pulse := ColorRect.new()
-	pulse.size = Vector2(108, 108)
-	pulse.position = Vector2(-54, -54)
-	pulse.color = Color(0.55, 0.9, 1.0, 0.18)
-	add_child(pulse)
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 54.0, Color(0.55, 0.9, 1.0, 0.2))
+	draw_arc(Vector2.ZERO, 54.0, 0.0, TAU, 44, Color(0.72, 0.96, 1.0, 0.9), 2.0)
 
 func _process(delta: float) -> void:
 	if anchor_ref != null:

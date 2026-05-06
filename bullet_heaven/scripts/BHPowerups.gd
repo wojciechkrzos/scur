@@ -4,12 +4,18 @@ enum WeaponId {
 	AOE_PULSE,
 	VERTICAL_JET,
 	SPIRAL_STREAM,
+	HOMING_MISSILE,
+	MOLOTOV_BOMB,
+	FAN_BURST,
 }
 
 enum PowerupId {
 	WEAPON_1,
 	WEAPON_2,
 	WEAPON_3,
+	WEAPON_4,
+	WEAPON_5,
+	WEAPON_6,
 	SPEEDUP,
 	SHIELD,
 }
@@ -37,6 +43,31 @@ const WEAPON_DEFINITIONS := {
 		"angle_step": 0.45,
 		"phase_step": 0.35,
 	},
+	WeaponId.HOMING_MISSILE: {
+		"name": "Rakieta Samonaprowadzająca",
+		"fire_mode": "homing_missile",
+		"damage": 3,
+		"shot_speed": 185.0,
+		"turn_rate": 3.6,
+		"range": 1050.0,
+	},
+	WeaponId.MOLOTOV_BOMB: {
+		"name": "Koktajl Mołotowa",
+		"fire_mode": "molotov_bomb",
+		"damage": 1,
+		"shot_speed": 145.0,
+		"distance": 430.0,
+		"explosion_damage": 3,
+		"explosion_radius": 84.0,
+		"explosion_lifetime": 1.4,
+	},
+	WeaponId.FAN_BURST: {
+		"name": "Stożek Odłamków",
+		"fire_mode": "fan_burst",
+		"damage": 1,
+		"shot_speed": 280.0,
+		"angles": [-0.42, -0.2, 0.0, 0.2, 0.42],
+	},
 }
 
 const POWERUP_DEFINITIONS := {
@@ -58,6 +89,24 @@ const POWERUP_DEFINITIONS := {
 		"kind": "weapon",
 		"weapon_id": WeaponId.SPIRAL_STREAM,
 	},
+	PowerupId.WEAPON_4: {
+		"name": "Rakieta Samonaprowadzająca",
+		"description": "Wolny pocisk śledzący najbliższego przeciwnika",
+		"kind": "weapon",
+		"weapon_id": WeaponId.HOMING_MISSILE,
+	},
+	PowerupId.WEAPON_5: {
+		"name": "Koktajl Mołotowa",
+		"description": "Ciężki pocisk przebijający wrogów i wybuchający po dystansie",
+		"kind": "weapon",
+		"weapon_id": WeaponId.MOLOTOV_BOMB,
+	},
+	PowerupId.WEAPON_6: {
+		"name": "Stożek Odłamków",
+		"description": "Szeroka salwa przed graczem",
+		"kind": "weapon",
+		"weapon_id": WeaponId.FAN_BURST,
+	},
 	PowerupId.SPEEDUP: {
 		"name": "Przyspieszenie",
 		"description": "Zwiększa prędkość ruchu",
@@ -76,6 +125,9 @@ const POWERUP_ORDER: Array[int] = [
 	PowerupId.WEAPON_1,
 	PowerupId.WEAPON_2,
 	PowerupId.WEAPON_3,
+	PowerupId.WEAPON_4,
+	PowerupId.WEAPON_5,
+	PowerupId.WEAPON_6,
 	PowerupId.SPEEDUP,
 	PowerupId.SHIELD,
 ]
