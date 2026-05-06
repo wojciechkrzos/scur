@@ -240,8 +240,11 @@ func _show_current_line() -> void:
 	dialogue_text.visible_characters = 0
 	
 	var portrait_texture = line.get("portrait", null)
-	portrait.texture = portrait_texture
-	portrait.visible = portrait_texture != null
+	if portrait_texture is String:
+		var portrait_path := str(portrait_texture)
+		portrait_texture = null if portrait_path.is_empty() else load(portrait_path)
+	portrait.texture = portrait_texture if portrait_texture is Texture2D else null
+	portrait.visible = portrait.texture != null
 	
 	visible_characters_count = 0
 	visible_characters_progress = 0.0
@@ -283,11 +286,15 @@ func _show_choices(choices: Array) -> void:
 func _on_choice_selected(choice_data: Dictionary) -> void:
 	last_choice_id = str(choice_data.get("id", ""))
 	if choice_data.has("jump_to"):
-		var target_id = int(choice_data["jump_to"])
+		var target_id: Variant = choice_data["jump_to"]
+		if not id_to_index.has(target_id):
+			var target_string := str(target_id)
+			if target_string.is_valid_int():
+				target_id = int(target_string)
 		if id_to_index.has(target_id):
 			current_line_index = id_to_index[target_id]
 		else:
-			push_error("Nie znaleziono id: " + str(target_id))
+			push_error("Nie znaleziono id: " + str(choice_data["jump_to"]))
 			return
 		_show_current_line()
 		return

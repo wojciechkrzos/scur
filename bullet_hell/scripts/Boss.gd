@@ -34,6 +34,8 @@ const PATTERNS := [
 	{ "method": "_pattern_ring_burst",     "duration": 4.0, "fire_rate": 0.60 },
 	{ "method": "_pattern_random_spread",  "duration": 4.0, "fire_rate": 0.08 },
 	{ "method": "_pattern_aimed_triple",   "duration": 5.0, "fire_rate": 0.25 },
+	{ "method": "_pattern_circle_pulse",   "duration": 6.0, "fire_rate": 0.90 },
+	{ "method": "_pattern_homing_ring",    "duration": 6.0, "fire_rate": 1.00 },
 ]
 
 var _current_pattern_idx: int = 0
@@ -177,16 +179,25 @@ func _pattern_aimed_burst() -> void:
 
 ## Pattern 4: Fala krzyżowa — dwie fale prostopadłe z sinusoidalnym przesunięciem
 func _pattern_cross_wave() -> void:
-	var count := 8
-	for i in count:
+	# More dynamic cross waves: mix angled sweeping streams and faster fill shots
+	var count := 10
+	var speed_main := 140.0
+	var speed_secondary := 190.0
+	for i in range(count):
 		var t := float(i) / count
-		# Fala pozioma
-		var dir_h := Vector2(cos(_wave_offset + t * TAU), sin(t * PI * 0.3))
-		_fire(dir_h.normalized(), 100.0, Color(0.4, 0.8, 1.0))
-		# Fala pionowa
-		var dir_v := Vector2(sin(t * PI * 0.3), cos(_wave_offset + t * TAU))
-		_fire(dir_v.normalized(), 100.0, Color(0.2, 1.0, 0.6))
-	_wave_offset += 0.12
+		var phase := _wave_offset + t * TAU
+		# oscillating angles so shots are not strictly vertical
+		var angle_h := phase + sin(phase * 1.4) * 0.22
+		var angle_v := phase - cos(phase * 1.2) * 0.22
+
+		_fire(Vector2.from_angle(angle_h), speed_main, Color(0.4, 0.8, 1.0))
+		_fire(Vector2.from_angle(angle_v), speed_main, Color(0.2, 1.0, 0.6))
+
+		# occasional fast filler shots to punish standing still
+		if i % 2 == 0:
+			_fire(Vector2.from_angle(angle_h + 0.12), speed_secondary, Color(1.0, 0.6, 0.4))
+	# sweep faster
+	_wave_offset += 0.32
 
 
 ## Pattern 5: Kwiat — płatki z serii rozbieżnych pierścieni
@@ -208,6 +219,63 @@ func _pattern_wall() -> void:
 		var x_off := (float(i) / (count - 1) - 0.5) * 2.0
 		var dir := Vector2(x_off * 0.3, 1.0).normalized()
 		_fire(dir, 95.0, Color(0.9, 0.9, 0.3))
+
+
+## Pattern 7: Miękki wachlarz nakierowany na gracza
+func _pattern_soft_fan() -> void:
+	if player_ref == null:
+		return
+	var to_player := (player_ref.position - position).normalized()
+	var base_angle := to_player.angle()
+	# Mix of slow-then-fast aimed arcs and a short burst of faster bullets for pressure
+	var spread := 2
+	var spread_rad := 0.18
+	# aimed delayed arcs (capture player pos when slow phase ends, then accelerate past)
+	for i in range(-spread, spread + 1):
+		var angle := base_angle + i * spread_rad
+		_fire_delayed_arc(
+			Vector2.from_angle(angle),
+			160.0,   # start speed
+			30.0,    # min (slow) speed
+			360.0,   # max speed after accel
+			0.6,     # slow duration (0.6s)
+			Color(0.8, 0.95, 1.0),
+			player_ref,
+			0.0,     # acceleration (default will be used if 0)
+			0.0
+		)
+	# add a tighter burst to punish stationary players
+	for j in 3:
+		var offset := randf_range(-0.06, 0.06)
+		_fire(Vector2.from_angle(base_angle + offset), 180.0, Color(1.0, 0.7, 0.5))
+
+
+## Pattern 8: Powolny pierścień z czytelnymi przerwami
+func _pattern_slow_ring() -> void:
+	var count := 10
+	for i in count:
+		var angle := TAU * float(i) / float(count)
+		_fire(Vector2.from_angle(angle), 72.0, Color(0.95, 0.75, 0.35))
+
+
+## Pattern 9: Łagodna spirala z dwoma ramionami
+func _pattern_lazy_spiral() -> void:
+	var arms := 2
+	for arm in arms:
+		var angle := _spiral_angle + TAU * float(arm) / float(arms)
+		_fire(Vector2.from_angle(angle), 88.0, Color(0.75, 0.45, 1.0))
+	_spiral_angle += 0.11
+
+
+## Pattern 10: Mur z bezpieczną przerwą pośrodku
+func _pattern_gap_wall() -> void:
+	var count := 9
+	for i in count:
+		if i == 4:
+			continue
+		var x_off := (float(i) / float(count - 1) - 0.5) * 2.0
+		var dir := Vector2(x_off * 0.22, 1.0).normalized()
+		_fire(dir, 110.0, Color(0.6, 1.0, 0.55))
 
 ## Podwójna spirala — dwie przeciwbieżne spirale jednocześnie
 func _pattern_double_spiral() -> void:
@@ -234,9 +302,9 @@ func _pattern_random_spread() -> void:
 		return
 	var to_player := (player_ref.position - position).normalized()
 	var base_angle := to_player.angle()
-	for i in 5:
+	for i in 10:
 		var random_offset := randf_range(-0.8, 0.8)
-		var speed := randf_range(80.0, 160.0)
+		var speed := randf_range(200.0, 250.0)
 		_fire(Vector2.from_angle(base_angle + random_offset), speed, Color(0.8, 1.0, 0.2))
 
 
@@ -254,12 +322,73 @@ func _pattern_aimed_triple() -> void:
 	_fire(Vector2.from_angle(base_angle - PI * 0.4), 100.0, Color(0.6, 0.2, 1.0))
 
 
+## Pattern 11: Circle pulse — najpierw zwalnia, potem gwałtownie przyspiesza
+func _pattern_circle_pulse() -> void:
+	var count := 14
+	var slow_duration := 0.30
+	for i in count:
+		var angle := TAU * float(i) / float(count)
+		_fire_delayed_arc(
+			Vector2.from_angle(angle),
+			145.0,
+			28.0,
+			320.0,
+			slow_duration,
+			Color(1.0, 0.85, 0.25)
+		)
+
+
+## Pattern 12: Homing ring — okrąg, który po chwili skręca w stronę gracza
+func _pattern_homing_ring() -> void:
+	if player_ref == null:
+		return
+	# Denser homing ring: two concentric rings with slight angular offset
+	var count := 18
+	for ring_idx in range(2):
+		var angle_offset := 0.0 if ring_idx == 0 else TAU / (count * 2)
+		for i in range(count):
+			var angle := TAU * float(i) / float(count) + angle_offset
+			# slower initial pause, then rapid acceleration toward captured player position
+			_fire_delayed_arc(
+				Vector2.from_angle(angle),
+				150.0,   # start speed
+				18.0,    # slow speed
+				480.0,   # max speed (higher for difficulty)
+				0.9,     # slow duration (0.9s)
+				Color(0.55, 0.9, 1.0),
+				player_ref,
+				0.0,
+				0.0
+			)
+
+
 
 
 # ── Spawn pocisku ────────────────────────────────────────────────────────────
 
 func _fire(direction: Vector2, speed: float, color: Color) -> void:
 	var b = _create_bullet(direction, speed, color)
+	bullet_spawned.emit(b)
+
+
+func _fire_delayed_arc(direction: Vector2, start_speed: float, min_speed: float, max_speed: float, slow_duration: float, color: Color, target_ref: Node2D = null, acceleration: float = 0.0, homing_strength: float = 0.0) -> void:
+	var b = _create_bullet(direction, start_speed, color)
+	b.set_meta("accelerate_after", slow_duration)
+	# decelerate from start_speed down to min_speed over slow_duration
+	var decel := -((start_speed - min_speed) / maxf(slow_duration, 0.01))
+	b.set_meta("deceleration", decel)
+	b.set_meta("min_speed", min_speed)
+	b.set_meta("max_speed", max_speed)
+	# if caller didn't provide acceleration, pick a sensible default so bullets re-accelerate
+	var accel_to_use := acceleration
+	if accel_to_use <= 0.0:
+		# default: reach max_speed from min_speed in ~0.5s
+		accel_to_use = maxf((max_speed - min_speed) / 0.5, 1.0)
+	b.set_meta("acceleration", accel_to_use)
+	if target_ref != null:
+		b.set_meta("target_ref", target_ref)
+		b.set_meta("homing_delay", slow_duration)
+		b.set_meta("homing_strength", homing_strength)
 	bullet_spawned.emit(b)
 
 

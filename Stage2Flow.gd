@@ -8,20 +8,22 @@ var flow: Array = []
 var index: int = 0
 var active := false
 var last_choice_id: String = ""
+var stage2_heaven_state: Dictionary = {}
 
 
 func start(main_node: Node) -> void:
 	main_ref = main_node
 	last_choice_id = ""
-	GameState.clear_plot_choices()
-	GameState.bullet_heaven_run_state.clear()
+	GameState.clear_stage_choice(2)
+	GameState.clear_stage_choice(3)
+	stage2_heaven_state = GameState.bullet_heaven_run_state.duplicate(true)
 
 	flow = [
-		{"type": "vn", "id": "tutorial"},
+		{"type": "vn", "id": "stage2_intro"},
 		{"type": "heaven"},
-		{"type": "vn", "id": "stage1_pre_boss"},
-		{"type": "boss", "which": "A"},
-		{"type": "vn", "id": "stage1_post_boss"},
+		{"type": "vn", "id": "stage2_pre_boss"},
+		{"type": "boss", "which": "B"},
+		{"type": "vn", "id": "stage2_post_boss"},
 	]
 
 	index = 0
@@ -43,50 +45,39 @@ func _run_next() -> void:
 	index += 1
 
 	match step.type:
-
 		"vn":
 			_run_vn(step.id)
-
 		"heaven":
 			_run_heaven()
-
 		"boss":
 			_run_boss(step.which)
 
-
-# ─────────────────────────────────────────────
-# STEPS
-# ─────────────────────────────────────────────
 
 func _run_vn(id: String) -> void:
 	main_ref.start_vn(id, last_choice_id)
 
 
 func _run_heaven() -> void:
-	main_ref.start_bullet_heaven("stage1", {}, "stage_1_bullet_heaven")
+	main_ref.start_bullet_heaven("stage2", stage2_heaven_state, "stage_2_bullet_heaven")
 
 
 func _run_boss(which: String) -> void:
-	main_ref.start_boss_test(which, "stage_1_bullet_hell")
+	main_ref.start_boss_test(which, "stage_2_bullet_hell")
 
-
-# ─────────────────────────────────────────────
-# CALLBACKS (MAIN MUSI JE WYWOŁAĆ)
-# ─────────────────────────────────────────────
 
 func notify_vn_finished(_result = null) -> void:
 	if typeof(_result) == TYPE_DICTIONARY and _result.has("choice"):
 		last_choice_id = str(_result.get("choice", ""))
 		if not last_choice_id.is_empty():
-			GameState.set_stage_choice(1, last_choice_id)
+			GameState.set_stage_choice(2, last_choice_id)
 			GameState.set_plot_choice(last_choice_id)
 	_run_next()
-	
+
 
 func _run_same_step() -> void:
 	active = true
 
-	var step = flow[index - 1] # cofamy się do aktualnego
+	var step = flow[index - 1]
 	match step.type:
 		"heaven":
 			_run_heaven()

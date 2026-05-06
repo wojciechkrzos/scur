@@ -25,6 +25,7 @@ var fight_active: bool = true
 var play_area: Rect2
 var bullet_container: Node2D
 var is_focused: bool = false  # Shift = tryb focus
+var can_shoot: bool = true
 
 # ── Efekt śmierci / nietykalności ───────────────────────────────────────────
 var _blink_timer: float = 0.0
@@ -110,6 +111,8 @@ func _handle_focus() -> void:
 func _shoot() -> void:
 	if not fight_active or not is_alive:
 		return
+	if not can_shoot:
+		return
 	if not (Input.is_key_pressed(KEY_Z) or Input.is_key_pressed(KEY_SPACE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 		return
 	
@@ -130,6 +133,10 @@ func _spawn_player_bullet(direction: Vector2, offset: Vector2) -> void:
 	bullet.direction = direction
 	bullet.damage = shoot_damage
 	bullet_spawned.emit(bullet)
+
+
+func set_shoot_enabled(enabled: bool) -> void:
+	can_shoot = enabled
 
 
 func _create_player_bullet() -> Node2D:

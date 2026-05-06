@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var lives_label = $LivesLabel
 @onready var score_label = $ScoreLabel
 @onready var timer_label = $TimerLabel
+@onready var boss_hp_label = $BossHPLabel
 @onready var boss_hp_bar = $BossHPBar
 @onready var win_label = $WinLabel
 
@@ -47,6 +48,8 @@ func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	
 	boss_hp_bar.max_value = boss_max_hp
 	boss_hp_bar.value = boss_max_hp
+	boss_hp_label.visible = win_condition != 0
+	boss_hp_bar.visible = win_condition != 0
 	
 	if win_condition == 0:  # SURVIVE
 		timer_label.modulate = Color(0.4, 1.0, 0.4)
@@ -84,6 +87,11 @@ func hide_timer() -> void:
 
 func update_boss_hp(hp: float, _max_hp: float) -> void:
 	boss_hp_bar.value = hp
+
+
+func set_boss_hp_visible(enabled: bool) -> void:
+	boss_hp_label.visible = enabled
+	boss_hp_bar.visible = enabled
 
 
 func flash_score() -> void:

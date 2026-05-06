@@ -4,7 +4,6 @@ signal fight_ended(result: String)
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
-const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 
@@ -30,7 +29,6 @@ const TANK_SPAWN_CHANCE := 0.2
 const SWARM_EVENT_INTERVAL := 12.0
 const SWARM_EVENT_ENEMY_COUNT := 9
 const SWARM_EDGE_MARGIN := 18.0
-const TOKEN_DROP_CHANCE := 0.005
 
 var fight_active: bool = false
 var time_remaining: float = 0.0
@@ -44,7 +42,9 @@ var player_collision_radius: float = 7.0
 var swarm_event_elapsed: float = 0.0
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
-var level_up_dimmer: ColorRect
+var stage_profile: String = "stage1"
+var initial_run_state: Dictionary = {}
+var _placeholder_square_texture: Texture2D = null
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -62,12 +62,13 @@ var level_up_dimmer: ColorRect
 @onready var choice_button_1 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton1
 @onready var choice_button_2 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton2
 @onready var choice_button_3 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton3
-@onready var level_up_tokens_label = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/TokenLabel
-@onready var reroll_button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/RerollButton
-@onready var skip_button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/SkipButton
 
 func get_stage_type() -> String:
 	return "heaven"
+
+func configure_stage(profile: String, run_state: Dictionary = {}) -> void:
+	stage_profile = profile
+	initial_run_state = run_state.duplicate(true)
 
 func start_fight() -> void:
 	play_area_rect = get_viewport_rect()
@@ -85,9 +86,15 @@ func start_fight() -> void:
 			player_collision_radius = (player_shape_node.shape as CircleShape2D).radius
 
 	player.setup(play_area_rect, bullet_container)
+	_apply_initial_run_state()
 	hud.setup(stage_duration, player.max_lives)
 	hud.update_pattern(player.get_pattern_name())
 	backdrop.setup(play_area_rect, world_size_px)
+	if stage_profile == "stage2":
+		backdrop.background_color = Color(0.0, 0.0, 0.0, 1.0)
+		backdrop.background_texture = null
+	else:
+		backdrop.background_color = Color(0.03, 0.05, 0.03, 1.0)
 	backdrop.set_scroll_offset(world_offset)
 	enemy_container.visible = true
 	enemy_container.position = world_offset
@@ -123,12 +130,9 @@ func _ready() -> void:
 	choice_button_1.pressed.connect(_on_choice_button_1_pressed)
 	choice_button_2.pressed.connect(_on_choice_button_2_pressed)
 	choice_button_3.pressed.connect(_on_choice_button_3_pressed)
-	reroll_button.pressed.connect(_on_reroll_button_pressed)
-	skip_button.pressed.connect(_on_skip_button_pressed)
 	level_up_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	level_up_panel.visible = false
-	_setup_level_up_ui_styles()
 	start_fight()
 
 func _process(delta: float) -> void:
@@ -259,17 +263,6 @@ func _on_player_area_entered(area: Area2D) -> void:
 		if area.has_method("get_xp_amount"):
 			player.add_experience(area.get_xp_amount())
 		area.queue_free()
-		return
-
-	if area.is_in_group("bh_token_pickup"):
-		if area.has_method("get_token_type"):
-			var token_type: int = int(area.get_token_type())
-			if token_type == BHTokenPickupScript.TokenType.SKIP:
-				player.add_skip_tokens(1)
-			else:
-				player.add_reroll_tokens(1)
-		_update_token_ui()
-		area.queue_free()
 
 func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 	if not fight_active:
@@ -289,7 +282,6 @@ func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 func _on_enemy_died(enemy: Area2D) -> void:
 	kills += 1
 	_spawn_xp_pellet(enemy.global_position, enemy.xp_value)
-	_try_spawn_levelup_token(enemy.global_position)
 
 func _on_player_died() -> void:
 	_end_fight("lose")
@@ -321,9 +313,9 @@ func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
 		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
 
-	level_up_title.text = "Wybór Ulepszenia"
-	level_up_subtitle.text = "Poziom %02d  •  wybierz 1 z 3 kart" % current_level
-	level_up_hint.text = "Rozgrywka zatrzymana do momentu wyboru"
+	level_up_title.text = "AWANS"
+	level_up_subtitle.text = "Poziom %02d - wybierz 1 z 3 ulepszeń" % current_level
+	level_up_hint.text = "Gra zatrzymana do wyboru ulepszenia"
 
 	var buttons := [choice_button_1, choice_button_2, choice_button_3]
 	for index in buttons.size():
@@ -332,22 +324,16 @@ func _open_level_up_ui(current_level: int) -> void:
 			var powerup_id := current_powerup_choices[index]
 			button.visible = true
 			button.disabled = false
-			button.text = _format_powerup_card_text(powerup_id)
-			_apply_choice_button_style(button, powerup_id)
+			button.text = BHPowerups.get_powerup_name(powerup_id) + "\n" + BHPowerups.get_powerup_description(powerup_id)
 			button.set_meta("powerup_id", powerup_id)
 		else:
 			button.visible = false
-	_update_token_ui()
 
 	level_up_panel.visible = true
-	if level_up_dimmer != null:
-		level_up_dimmer.visible = true
 	get_tree().paused = true
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
-	if level_up_dimmer != null:
-		level_up_dimmer.visible = false
 	current_powerup_choices.clear()
 
 func _apply_powerup_from_button(button: Button) -> void:
@@ -362,165 +348,6 @@ func _apply_powerup_from_button(button: Button) -> void:
 	_hide_level_up_ui()
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
-
-func _setup_level_up_ui_styles() -> void:
-	if level_up_dimmer == null:
-		level_up_dimmer = ColorRect.new()
-		level_up_dimmer.name = "LevelUpDimmer"
-		level_up_dimmer.anchors_preset = Control.PRESET_FULL_RECT
-		level_up_dimmer.anchor_right = 1.0
-		level_up_dimmer.anchor_bottom = 1.0
-		level_up_dimmer.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		level_up_dimmer.grow_vertical = Control.GROW_DIRECTION_BOTH
-		level_up_dimmer.color = Color(0.03, 0.02, 0.06, 0.72)
-		level_up_dimmer.visible = false
-		level_up_layer.add_child(level_up_dimmer)
-		level_up_layer.move_child(level_up_dimmer, 0)
-
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.09, 0.1, 0.14, 0.98)
-	panel_style.border_width_left = 3
-	panel_style.border_width_top = 3
-	panel_style.border_width_right = 3
-	panel_style.border_width_bottom = 3
-	panel_style.border_color = Color(0.45, 0.75, 1.0, 0.95)
-	panel_style.corner_radius_top_left = 14
-	panel_style.corner_radius_top_right = 14
-	panel_style.corner_radius_bottom_left = 14
-	panel_style.corner_radius_bottom_right = 14
-	level_up_panel.add_theme_stylebox_override("panel", panel_style)
-
-	level_up_title.add_theme_font_size_override("font_size", 42)
-	level_up_subtitle.add_theme_font_size_override("font_size", 20)
-	level_up_hint.add_theme_font_size_override("font_size", 18)
-	level_up_hint.modulate = Color(0.86, 0.91, 1.0, 0.92)
-	level_up_tokens_label.add_theme_font_size_override("font_size", 19)
-	level_up_tokens_label.modulate = Color(0.94, 0.95, 1.0, 1.0)
-
-	var utility_style := StyleBoxFlat.new()
-	utility_style.bg_color = Color(0.15, 0.16, 0.21, 1.0)
-	utility_style.border_color = Color(0.72, 0.74, 0.84, 1.0)
-	utility_style.border_width_left = 2
-	utility_style.border_width_top = 2
-	utility_style.border_width_right = 2
-	utility_style.border_width_bottom = 2
-	utility_style.corner_radius_top_left = 8
-	utility_style.corner_radius_top_right = 8
-	utility_style.corner_radius_bottom_left = 8
-	utility_style.corner_radius_bottom_right = 8
-	reroll_button.add_theme_stylebox_override("normal", utility_style)
-	skip_button.add_theme_stylebox_override("normal", utility_style)
-	reroll_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
-	skip_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
-	reroll_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4, 1.0))
-	skip_button.add_theme_color_override("font_color", Color(0.56, 0.82, 1.0, 1.0))
-
-func _format_powerup_card_text(powerup_id: int) -> String:
-	var name := BHPowerups.get_powerup_name(powerup_id)
-	var desc := BHPowerups.get_powerup_description(powerup_id)
-	var data := BHPowerups.get_powerup_data(powerup_id)
-	var kind := String(data.get("kind", ""))
-	var kind_label := "TECH"
-	match kind:
-		"weapon":
-			kind_label = "BROŃ"
-		"speed":
-			kind_label = "MOBILNOŚĆ"
-		"shield":
-			kind_label = "OBRONA"
-	return "%s\n%s\n\n%s" % [name.to_upper(), kind_label, desc]
-
-func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
-	button.custom_minimum_size = Vector2(188.0, 190.0)
-	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
-	button.add_theme_font_size_override("font_size", 19)
-
-	var data := BHPowerups.get_powerup_data(powerup_id)
-	var kind := String(data.get("kind", ""))
-	var border_color := Color(0.55, 0.7, 1.0, 1.0)
-	var fill_color := Color(0.13, 0.17, 0.24, 1.0)
-	match kind:
-		"weapon":
-			border_color = Color(0.98, 0.68, 0.28, 1.0)
-			fill_color = Color(0.2, 0.14, 0.1, 1.0)
-		"speed":
-			border_color = Color(0.33, 0.9, 0.62, 1.0)
-			fill_color = Color(0.07, 0.2, 0.16, 1.0)
-		"shield":
-			border_color = Color(0.42, 0.78, 1.0, 1.0)
-			fill_color = Color(0.08, 0.13, 0.2, 1.0)
-
-	var normal_style := StyleBoxFlat.new()
-	normal_style.bg_color = fill_color
-	normal_style.border_color = border_color
-	normal_style.border_width_left = 2
-	normal_style.border_width_top = 2
-	normal_style.border_width_right = 2
-	normal_style.border_width_bottom = 2
-	normal_style.corner_radius_top_left = 10
-	normal_style.corner_radius_top_right = 10
-	normal_style.corner_radius_bottom_left = 10
-	normal_style.corner_radius_bottom_right = 10
-
-	var hover_style := normal_style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = fill_color.lightened(0.12)
-
-	var pressed_style := normal_style.duplicate() as StyleBoxFlat
-	pressed_style.bg_color = fill_color.darkened(0.14)
-
-	button.add_theme_stylebox_override("normal", normal_style)
-	button.add_theme_stylebox_override("hover", hover_style)
-	button.add_theme_stylebox_override("pressed", pressed_style)
-	button.add_theme_color_override("font_color", Color(0.97, 0.98, 1.0, 1.0))
-
-func _update_token_ui() -> void:
-	if level_up_tokens_label == null:
-		return
-
-	var rerolls := player.get_reroll_tokens()
-	var skips := player.get_skip_tokens()
-	level_up_tokens_label.text = "Tokeny: Reroll %d  •  Skip %d" % [rerolls, skips]
-	if reroll_button != null:
-		reroll_button.disabled = rerolls <= 0
-	if skip_button != null:
-		skip_button.disabled = skips <= 0
-
-func _on_reroll_button_pressed() -> void:
-	if not level_up_panel.visible:
-		return
-	if not player.consume_reroll_token():
-		_update_token_ui()
-		return
-
-	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
-	_open_level_up_ui(player.level)
-
-func _on_skip_button_pressed() -> void:
-	if not level_up_panel.visible:
-		return
-	if not player.consume_skip_token():
-		_update_token_ui()
-		return
-
-	pending_level_ups = max(pending_level_ups - 1, 0)
-	current_powerup_choices.clear()
-	get_tree().paused = false
-	_hide_level_up_ui()
-	if pending_level_ups > 0:
-		call_deferred("_resume_level_up_sequence")
-
-func _try_spawn_levelup_token(spawn_position: Vector2) -> void:
-	if randf() > TOKEN_DROP_CHANCE:
-		return
-
-	var token := BHTokenPickupScript.new()
-	token.token_type = BHTokenPickupScript.TokenType.REROLL
-	if randf() < 0.5:
-		token.token_type = BHTokenPickupScript.TokenType.SKIP
-	token.position = pickup_container.to_local(spawn_position)
-	pickup_container.call_deferred("add_child", token)
 
 func _resume_level_up_sequence() -> void:
 	if pending_level_ups <= 0:
@@ -657,6 +484,10 @@ func _apply_world_delta(applied_delta: Vector2) -> void:
 	backdrop.set_scroll_offset(world_offset)
 
 func _spawn_stage_obstacles() -> void:
+	if stage_profile == "stage2":
+		_spawn_stage2_placeholder_obstacles()
+		return
+
 	var world_center := play_area_rect.get_center()
 	var world_top_left := world_center - world_size_px * 0.5
 	var fountain_texture: Texture2D = _load_texture(fountain_texture_path)
@@ -700,6 +531,74 @@ func _spawn_stage_obstacles() -> void:
 		pigeon_right_mid.set_visual_flip_h(true)
 		pigeon_right_mid.position = world_top_left + Vector2(world_size_px.x * 0.82, world_size_px.y * 0.44)
 		obstacle_container.add_child(pigeon_right_mid)
+
+func _spawn_stage2_placeholder_obstacles() -> void:
+	var square_texture := _get_placeholder_square_texture()
+	if square_texture == null:
+		return
+
+	var world_center := play_area_rect.get_center()
+	var offsets: Array[Vector2] = [
+		Vector2(0.0, -180.0),
+		Vector2(-260.0, 40.0),
+		Vector2(260.0, 40.0),
+		Vector2(-120.0, 220.0),
+		Vector2(120.0, 220.0),
+	]
+	for offset in offsets:
+		var square := BHObstacleScript.new()
+		square.setup(square_texture, 18.0, 3.0)
+		square.position = world_center + offset
+		obstacle_container.add_child(square)
+
+func _get_placeholder_square_texture() -> Texture2D:
+	if _placeholder_square_texture != null:
+		return _placeholder_square_texture
+
+	var image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	image.fill(Color(1.0, 1.0, 1.0, 1.0))
+	_placeholder_square_texture = ImageTexture.create_from_image(image)
+	return _placeholder_square_texture
+
+func _apply_initial_run_state() -> void:
+	if initial_run_state.is_empty():
+		return
+
+	if initial_run_state.has("max_lives"):
+		player.max_lives = maxi(int(initial_run_state.get("max_lives", player.max_lives)), 1)
+		player.lives = clampi(int(initial_run_state.get("lives", player.max_lives)), 1, player.max_lives)
+	if initial_run_state.has("level"):
+		player.level = maxi(int(initial_run_state.get("level", player.level)), 1)
+	if initial_run_state.has("experience_points"):
+		player.experience_points = maxi(int(initial_run_state.get("experience_points", player.experience_points)), 0)
+	if initial_run_state.has("xp_to_next_level"):
+		player.xp_to_next_level = maxi(int(initial_run_state.get("xp_to_next_level", player.xp_to_next_level)), 1)
+	if initial_run_state.has("speed"):
+		player.speed = float(initial_run_state.get("speed", player.speed))
+	if initial_run_state.has("active_weapons"):
+		var active_weapons_raw: Array = initial_run_state.get("active_weapons", [])
+		player.active_weapons.clear()
+		for weapon_id in active_weapons_raw:
+			var weapon_value := int(weapon_id)
+			if not player.active_weapons.has(weapon_value):
+				player.active_weapons.append(weapon_value)
+	if initial_run_state.has("spiral_phase"):
+		player.spiral_phase = float(initial_run_state.get("spiral_phase", player.spiral_phase))
+
+	player._update_experience_ui()
+	player._update_walk_animation(0.0)
+
+func get_run_state() -> Dictionary:
+	return {
+		"lives": player.lives,
+		"max_lives": player.max_lives,
+		"experience_points": player.experience_points,
+		"level": player.level,
+		"xp_to_next_level": player.xp_to_next_level,
+		"speed": player.speed,
+		"active_weapons": player.get_owned_weapon_ids(),
+		"spiral_phase": player.spiral_phase,
+	}
 
 func _load_texture(path: String) -> Texture2D:
 	if path.is_empty():
