@@ -10,6 +10,7 @@ const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.g
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
+const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
 
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
@@ -52,6 +53,7 @@ var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
 var level_up_dimmer: ColorRect
 var swarm_warning_indicator
+var audio_controller
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -143,6 +145,7 @@ func _ready() -> void:
 	level_up_panel.visible = false
 	_setup_level_up_ui_styles()
 	_setup_swarm_warning_indicator()
+	_setup_audio()
 	start_fight()
 
 func _process(delta: float) -> void:
@@ -240,6 +243,25 @@ func _setup_swarm_warning_indicator() -> void:
 	swarm_warning_indicator.name = "SwarmWarningIndicator"
 	add_child(swarm_warning_indicator)
 
+func _setup_audio() -> void:
+	if audio_controller != null:
+		return
+	audio_controller = BHAudioScript.new()
+	audio_controller.name = "BulletHeavenAudio"
+	add_child(audio_controller)
+	player.weapon_fired.connect(audio_controller.play_weapon)
+	swarm_warning_started.connect(_on_swarm_warning_audio)
+	swarm_spawned.connect(_on_swarm_spawn_audio)
+	audio_controller.play_music("theme")
+
+func _on_swarm_warning_audio() -> void:
+	if audio_controller != null:
+		audio_controller.play_sfx("swarm_warning")
+
+func _on_swarm_spawn_audio() -> void:
+	if audio_controller != null:
+		audio_controller.play_sfx("swarm_spawn")
+
 func _build_swarm_spawn_positions(side: int, count: int) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
 	if count <= 0:
@@ -289,6 +311,12 @@ func _on_player_shot_spawned(shot: Node2D) -> void:
 	bullet_container.add_child(shot)
 	shot.global_position = shot.position
 	shot.anchor_ref = player
+	if shot.has_signal("explosion_created"):
+		shot.explosion_created.connect(_on_molotov_explosion_created)
+
+func _on_molotov_explosion_created() -> void:
+	if audio_controller != null:
+		audio_controller.play_sfx("weapon_molotov_explosion")
 
 func _on_player_experience_changed(current_xp: int, current_level: int, xp_to_next: int) -> void:
 	hud.update_level(current_level)
@@ -357,6 +385,8 @@ func _end_fight(result: String) -> void:
 		bullet.queue_free()
 
 	hud.show_result(result)
+	if audio_controller != null:
+		audio_controller.play_music("victory" if result == "win" else "defeat")
 	await get_tree().create_timer(2.0).timeout
 	fight_ended.emit(result)
 
@@ -394,6 +424,8 @@ func _open_level_up_ui(current_level: int) -> void:
 	if level_up_dimmer != null:
 		level_up_dimmer.visible = true
 	get_tree().paused = true
+	if audio_controller != null:
+		audio_controller.play_music("level_up")
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
@@ -411,6 +443,8 @@ func _apply_powerup_from_button(button: Button) -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
+	if audio_controller != null:
+		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
 
@@ -569,6 +603,8 @@ func _on_skip_button_pressed() -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
+	if audio_controller != null:
+		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
 
@@ -587,7 +623,7 @@ func _resume_level_up_sequence() -> void:
 	if pending_level_ups <= 0:
 		return
 	get_tree().paused = false
-	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
+	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 	_open_level_up_ui(player.level)
 
 func _on_choice_button_1_pressed() -> void:

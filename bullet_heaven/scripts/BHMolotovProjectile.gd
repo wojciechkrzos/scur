@@ -1,5 +1,7 @@
 extends Area2D
 
+signal explosion_created
+
 const BHExplosionScript = preload("res://bullet_heaven/scripts/BHExplosion.gd")
 
 var direction: Vector2 = Vector2.UP
@@ -70,6 +72,7 @@ func _explode() -> void:
 	if exploded:
 		return
 	exploded = true
+	explosion_created.emit()
 	visible = false
 	collision_layer = 0
 	collision_mask = 0
