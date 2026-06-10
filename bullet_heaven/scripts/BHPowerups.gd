@@ -25,6 +25,7 @@ enum PowerupId {
 const WEAPON_DEFINITIONS := {
 	WeaponId.AOE_PULSE: {
 		"name": "Impuls",
+		"icon_path": "res://assets/bullet_heaven/icons/impulse.png",
 		"fire_mode": "aoe_pulse",
 		"levels": [
 			{"damage": 1, "radius": 54.0, "lifetime": 0.32},
@@ -36,6 +37,7 @@ const WEAPON_DEFINITIONS := {
 	},
 	WeaponId.VERTICAL_JET: {
 		"name": "Strumień",
+		"icon_path": "res://assets/bullet_heaven/icons/vertical_jet.png",
 		"fire_mode": "vertical_jet",
 		"levels": [
 			{"damage": 1, "shot_speed": 270.0, "shot_count": 3, "spacing": 10.0},
@@ -47,6 +49,7 @@ const WEAPON_DEFINITIONS := {
 	},
 	WeaponId.SPIRAL_STREAM: {
 		"name": "Spirala",
+		"icon_path": "res://assets/bullet_heaven/icons/spiral.png",
 		"fire_mode": "spiral_stream",
 		"levels": [
 			{"damage": 1, "shot_speed": 250.0, "shot_count": 4, "phase_step": 0.35},
@@ -58,6 +61,7 @@ const WEAPON_DEFINITIONS := {
 	},
 	WeaponId.HOMING_MISSILE: {
 		"name": "Rakieta Samonaprowadzająca",
+		"icon_path": "res://assets/bullet_heaven/icons/homing_missile.png",
 		"fire_mode": "homing_missile",
 		"levels": [
 			{"damage": 3, "shot_speed": 185.0, "turn_rate": 3.6, "range": 1050.0, "shot_count": 1},
@@ -69,6 +73,7 @@ const WEAPON_DEFINITIONS := {
 	},
 	WeaponId.MOLOTOV_BOMB: {
 		"name": "Koktajl Mołotowa",
+		"icon_path": "res://assets/bullet_heaven/icons/molotov.png",
 		"fire_mode": "molotov_bomb",
 		"levels": [
 			{"damage": 1, "shot_speed": 145.0, "distance": 430.0, "explosion_damage": 3, "explosion_radius": 84.0, "explosion_lifetime": 1.4, "shot_count": 1},
@@ -80,6 +85,7 @@ const WEAPON_DEFINITIONS := {
 	},
 	WeaponId.FAN_BURST: {
 		"name": "Stożek Odłamków",
+		"icon_path": "res://assets/bullet_heaven/icons/fan_burst.png",
 		"fire_mode": "fan_burst",
 		"levels": [
 			{"damage": 1, "shot_speed": 280.0, "shot_count": 5, "spread": 0.84},
@@ -98,8 +104,8 @@ const POWERUP_DEFINITIONS := {
 	PowerupId.WEAPON_4: {"name": "Rakieta Samonaprowadzająca", "description": "Pocisk śledzący najbliższego przeciwnika", "kind": "weapon", "weapon_id": WeaponId.HOMING_MISSILE},
 	PowerupId.WEAPON_5: {"name": "Koktajl Mołotowa", "description": "Pocisk tworzący płonący obszar", "kind": "weapon", "weapon_id": WeaponId.MOLOTOV_BOMB},
 	PowerupId.WEAPON_6: {"name": "Stożek Odłamków", "description": "Szeroka salwa przed graczem", "kind": "weapon", "weapon_id": WeaponId.FAN_BURST},
-	PowerupId.SPEEDUP: {"name": "Przyspieszenie", "description": "Zwiększa prędkość ruchu", "kind": "speed", "value": 30.0},
-	PowerupId.SHIELD: {"name": "Tarcza", "description": "Dodatkowe życie", "kind": "shield", "value": 1},
+	PowerupId.SPEEDUP: {"name": "Przyspieszenie", "description": "Zwiększa prędkość ruchu", "kind": "speed", "value": 30.0, "icon_path": "res://assets/bullet_heaven/icons/speed.png"},
+	PowerupId.SHIELD: {"name": "Tarcza", "description": "Dodatkowe życie", "kind": "shield", "value": 1, "icon_path": "res://assets/bullet_heaven/icons/shield.png"},
 }
 
 const POWERUP_ORDER: Array[int] = [
@@ -131,6 +137,10 @@ static func get_weapon_stats(weapon_id: int, level: int) -> Dictionary:
 static func get_weapon_name(weapon_id: int) -> String:
 	return String(get_weapon_definition(weapon_id).get("name", "Unknown Weapon"))
 
+static func get_weapon_icon(weapon_id: int) -> Texture2D:
+	var path: String = String(get_weapon_definition(weapon_id).get("icon_path", ""))
+	return load(path) as Texture2D if not path.is_empty() else null
+
 static func get_powerup_data(powerup_id: int) -> Dictionary:
 	return POWERUP_DEFINITIONS.get(powerup_id, {})
 
@@ -139,6 +149,13 @@ static func get_powerup_name(powerup_id: int) -> String:
 
 static func get_powerup_description(powerup_id: int) -> String:
 	return String(get_powerup_data(powerup_id).get("description", ""))
+
+static func get_powerup_icon(powerup_id: int) -> Texture2D:
+	var data: Dictionary = get_powerup_data(powerup_id)
+	var path: String = String(data.get("icon_path", ""))
+	if String(data.get("kind", "")) == "weapon":
+		return get_weapon_icon(int(data.get("weapon_id", -1)))
+	return load(path) as Texture2D if not path.is_empty() else null
 
 static func get_random_choices(count: int, weapon_levels: Dictionary = {}) -> Array[int]:
 	var options: Array[int] = []

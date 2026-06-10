@@ -78,10 +78,13 @@ func update_weapon_inventory(inventory: Dictionary) -> void:
 		var row := HBoxContainer.new()
 		row.custom_minimum_size = Vector2(250.0, 38.0)
 		row.add_theme_constant_override("separation", 10)
-		var marker := ColorRect.new()
-		marker.custom_minimum_size = Vector2(8.0, 30.0)
-		marker.color = _get_weapon_color(weapon_id)
-		row.add_child(marker)
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(32.0, 32.0)
+		icon.texture = BHPowerups.get_weapon_icon(weapon_id)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		row.add_child(icon)
 		var name_label := Label.new()
 		name_label.text = BHPowerups.get_weapon_name(weapon_id)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -126,14 +129,3 @@ func _make_panel_style(border_color: Color) -> StyleBoxFlat:
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
 	return style
-
-func _get_weapon_color(weapon_id: int) -> Color:
-	var colors: Array[Color] = [
-		Color(0.35, 0.9, 1.0),
-		Color(0.42, 1.0, 0.55),
-		Color(0.78, 0.52, 1.0),
-		Color(1.0, 0.86, 0.28),
-		Color(1.0, 0.38, 0.18),
-		Color(0.94, 0.92, 0.82),
-	]
-	return colors[clampi(weapon_id, 0, colors.size() - 1)]

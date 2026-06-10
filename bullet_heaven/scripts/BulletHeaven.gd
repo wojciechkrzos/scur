@@ -339,6 +339,7 @@ func _open_level_up_ui(current_level: int) -> void:
 			button.visible = true
 			button.disabled = false
 			button.text = _format_powerup_card_text(powerup_id)
+			button.icon = BHPowerups.get_powerup_icon(powerup_id)
 			_apply_choice_button_style(button, powerup_id)
 			button.set_meta("powerup_id", powerup_id)
 		else:
@@ -447,6 +448,10 @@ func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.expand_icon = true
+	button.icon_max_width = 64
+	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	button.add_theme_font_size_override("font_size", 19)
 
 	var data := BHPowerups.get_powerup_data(powerup_id)
