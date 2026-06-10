@@ -20,7 +20,7 @@ enum AnimState {
 }
 
 @export var enemy_kind: EnemyKind = EnemyKind.STANDARD
-@export var speed: float = 85.0
+@export var speed: float = 95.0
 @export var hp: int = 1
 @export var xp_value: int = 1
 @export var damage_flash_color: Color = Color(1.0, 0.95, 0.95, 1.0)
@@ -71,7 +71,7 @@ func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Ve
 func _apply_kind_stats() -> void:
 	match enemy_kind:
 		EnemyKind.TANK:
-			speed = 55.0
+			speed = 62.0
 			hp = 6
 			xp_value = randi_range(2, 5)
 			movement_mode = MovementMode.HOMING
@@ -79,7 +79,7 @@ func _apply_kind_stats() -> void:
 			body_size = Vector2(26, 26)
 			collision_radius = 11.5
 		EnemyKind.SWARM:
-			speed = 210.0
+			speed = 225.0
 			hp = 1
 			xp_value = 1
 			movement_mode = MovementMode.LINE
@@ -87,7 +87,7 @@ func _apply_kind_stats() -> void:
 			body_size = Vector2(14, 14)
 			collision_radius = 6.0
 		_:
-			speed = 85.0
+			speed = 95.0
 			hp = 1
 			xp_value = 1
 			movement_mode = MovementMode.HOMING
