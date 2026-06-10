@@ -1,12 +1,15 @@
 extends Node2D
 
 signal fight_ended(result: String)
+signal swarm_warning_started
+signal swarm_spawned
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
 const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
+const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
 
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
@@ -30,6 +33,7 @@ const TANK_SPAWN_CHANCE := 0.2
 const SWARM_EVENT_INTERVAL := 12.0
 const SWARM_EVENT_ENEMY_COUNT := 9
 const SWARM_EDGE_MARGIN := 18.0
+const SWARM_WARNING_DURATION := 1.25
 const TOKEN_DROP_CHANCE := 0.005
 
 var fight_active: bool = false
@@ -42,9 +46,12 @@ var world_offset: Vector2 = Vector2.ZERO
 var world_scroll_limits: Vector2 = Vector2.ZERO
 var player_collision_radius: float = 7.0
 var swarm_event_elapsed: float = 0.0
+var swarm_warning_remaining: float = 0.0
+var pending_swarm_side: int = -1
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
 var level_up_dimmer: ColorRect
+var swarm_warning_indicator
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -78,6 +85,10 @@ func start_fight() -> void:
 	wave_level = 1
 	current_spawn_interval = base_spawn_interval
 	swarm_event_elapsed = 0.0
+	swarm_warning_remaining = 0.0
+	pending_swarm_side = -1
+	if swarm_warning_indicator != null:
+		swarm_warning_indicator.hide_warning()
 	world_offset = _clamp_world_offset(initial_world_offset_px)
 	if player.has_node("PlayerCollision"):
 		var player_shape_node := player.get_node("PlayerCollision") as CollisionShape2D
@@ -131,6 +142,7 @@ func _ready() -> void:
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	level_up_panel.visible = false
 	_setup_level_up_ui_styles()
+	_setup_swarm_warning_indicator()
 	start_fight()
 
 func _process(delta: float) -> void:
@@ -177,24 +189,56 @@ func _spawn_enemy_of_kind(kind: int, spawn_position: Vector2, direction: Vector2
 	enemy_container.add_child(enemy)
 
 func _update_swarm_event(delta: float) -> void:
+	if pending_swarm_side >= 0:
+		swarm_warning_remaining -= delta
+		if swarm_warning_remaining <= 0.0:
+			var side_to_spawn: int = pending_swarm_side
+			pending_swarm_side = -1
+			if swarm_warning_indicator != null:
+				swarm_warning_indicator.hide_warning()
+			_spawn_swarm_event(side_to_spawn)
+		return
+
 	swarm_event_elapsed += delta
 	if swarm_event_elapsed < SWARM_EVENT_INTERVAL:
 		return
 
 	swarm_event_elapsed = 0.0
-	_spawn_swarm_event()
+	pending_swarm_side = randi() % 4
+	swarm_warning_remaining = SWARM_WARNING_DURATION
+	if swarm_warning_indicator != null:
+		swarm_warning_indicator.show_warning(player, _get_swarm_source_direction(pending_swarm_side), SWARM_WARNING_DURATION)
+	swarm_warning_started.emit()
 
-func _spawn_swarm_event() -> void:
+func _spawn_swarm_event(side: int) -> void:
 	if not fight_active:
 		return
 
-	var side: int = randi() % 4
 	var spawn_positions := _build_swarm_spawn_positions(side, SWARM_EVENT_ENEMY_COUNT)
 	for spawn_position in spawn_positions:
 		var direction: Vector2 = (player.global_position - spawn_position).normalized()
 		if direction == Vector2.ZERO:
-			direction = _fallback_swarm_direction(side)
+				direction = _fallback_swarm_direction(side)
 		_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.SWARM, spawn_position, direction)
+	swarm_spawned.emit()
+
+func _get_swarm_source_direction(side: int) -> Vector2:
+	match side:
+		0:
+			return Vector2.LEFT
+		1:
+			return Vector2.RIGHT
+		2:
+			return Vector2.UP
+		_:
+			return Vector2.DOWN
+
+func _setup_swarm_warning_indicator() -> void:
+	if swarm_warning_indicator != null:
+		return
+	swarm_warning_indicator = BHSwarmWarningScript.new()
+	swarm_warning_indicator.name = "SwarmWarningIndicator"
+	add_child(swarm_warning_indicator)
 
 func _build_swarm_spawn_positions(side: int, count: int) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
