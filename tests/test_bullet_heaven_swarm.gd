@@ -28,6 +28,8 @@ func _run() -> void:
 	_expect(not stage.swarm_warning_indicator.active, "Warning indicator should hide after spawning")
 	_expect(stage.enemy_container.get_child_count() == stage.SWARM_EVENT_ENEMY_COUNT, "Swarm should spawn nine enemies")
 
+	stage.audio_controller.stop_all_sfx()
+	await create_timer(1.0).timeout
 	stage.queue_free()
 	await process_frame
 	if failures.is_empty():

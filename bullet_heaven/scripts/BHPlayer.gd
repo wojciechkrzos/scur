@@ -5,6 +5,7 @@ signal shot_spawned(shot: Node2D)
 signal experience_changed(current_xp: int, current_level: int, xp_to_next: int)
 signal leveled_up(new_level: int)
 signal weapon_inventory_changed(inventory: Dictionary)
+signal weapon_fired(weapon_id: int)
 
 const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
@@ -111,6 +112,7 @@ func _fire_weapon(weapon_id: int) -> void:
 	var weapon_data := BHPowerups.get_weapon_stats(weapon_id, weapon_level)
 	if weapon_data.is_empty():
 		return
+	weapon_fired.emit(weapon_id)
 
 	match String(weapon_data.get("fire_mode", "")):
 		"aoe_pulse":
