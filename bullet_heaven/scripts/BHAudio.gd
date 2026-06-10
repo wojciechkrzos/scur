@@ -68,6 +68,10 @@ func stop_music() -> void:
 	if music_player != null:
 		music_player.stop()
 
+func stop_all_sfx() -> void:
+	for player in sfx_players.values():
+		player.stop()
+
 func _get_sfx_player(cue_name: String) -> AudioStreamPlayer:
 	if sfx_players.has(cue_name):
 		return sfx_players[cue_name]
