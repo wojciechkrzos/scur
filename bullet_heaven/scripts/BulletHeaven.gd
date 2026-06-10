@@ -87,6 +87,7 @@ func start_fight() -> void:
 	player.setup(play_area_rect, bullet_container)
 	hud.setup(stage_duration, player.max_lives)
 	hud.update_pattern(player.get_pattern_name())
+	hud.update_weapon_inventory(player.get_weapon_inventory())
 	backdrop.setup(play_area_rect, world_size_px)
 	backdrop.set_scroll_offset(world_offset)
 	enemy_container.visible = true
@@ -119,6 +120,7 @@ func _ready() -> void:
 	player.shot_spawned.connect(_on_player_shot_spawned)
 	player.experience_changed.connect(_on_player_experience_changed)
 	player.leveled_up.connect(_on_player_leveled_up)
+	player.weapon_inventory_changed.connect(_on_player_weapon_inventory_changed)
 	player.area_entered.connect(_on_player_area_entered)
 	choice_button_1.pressed.connect(_on_choice_button_1_pressed)
 	choice_button_2.pressed.connect(_on_choice_button_2_pressed)
@@ -154,6 +156,7 @@ func _process(delta: float) -> void:
 	hud.update_lives(player.lives)
 	hud.update_kills(kills)
 	hud.update_pattern(player.get_pattern_name())
+	hud.update_wave(wave_level)
 	_collect_nearby_xp_orbs()
 
 func _spawn_enemy() -> void:
@@ -247,6 +250,9 @@ func _on_player_experience_changed(current_xp: int, current_level: int, xp_to_ne
 	hud.update_level(current_level)
 	hud.update_experience(current_xp, xp_to_next)
 	hud.update_pattern(player.get_pattern_name())
+
+func _on_player_weapon_inventory_changed(inventory: Dictionary) -> void:
+	hud.update_weapon_inventory(inventory)
 
 func _on_player_leveled_up(new_level: int) -> void:
 	pending_level_ups += 1
@@ -428,10 +434,16 @@ func _format_powerup_card_text(powerup_id: int) -> String:
 			kind_label = "MOBILNOŚĆ"
 		"shield":
 			kind_label = "OBRONA"
+	if kind == "weapon":
+		var weapon_id: int = int(data.get("weapon_id", -1))
+		var current_level: int = player.get_weapon_level(weapon_id)
+		var level_text := "NOWA BROŃ" if current_level == 0 else "POZIOM %d → %d" % [current_level, current_level + 1]
+		var upgrade_text := BHPowerups.get_upgrade_summary(weapon_id, current_level)
+		return "%s\n%s  •  %s\n\n%s\n\n%s" % [name.to_upper(), kind_label, level_text, desc, upgrade_text]
 	return "%s\n%s\n\n%s" % [name.to_upper(), kind_label, desc]
 
 func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
-	button.custom_minimum_size = Vector2(188.0, 190.0)
+	button.custom_minimum_size = Vector2(230.0, 250.0)
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
