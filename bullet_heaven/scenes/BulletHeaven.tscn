@@ -67,7 +67,7 @@ theme_override_constants/separation = 5
 
 [node name="LivesLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
 layout_mode = 2
-text = "ŻYCIA  ♥ ♥ ♥"
+text = "ZYYYCIA  ♥ ♥ ♥"
 
 [node name="KillsLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
 layout_mode = 2
@@ -107,7 +107,7 @@ layout_mode = 2
 text = "FALA 01"
 horizontal_alignment = 1
 
-[node name="WeaponPanel" type="PanelContainer" parent="HUD"]
+[node name="WeaponPanel" type="MarginContainer" parent="HUD"]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -182,16 +182,12 @@ vertical_alignment = 1
 
 [node name="LevelUpLayer" type="CanvasLayer" parent="." unique_id=1340151120]
 
-[node name="LevelUpPanel" type="PanelContainer" parent="LevelUpLayer" unique_id=1185265142]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -390.0
-offset_top = -270.0
-offset_right = 390.0
-offset_bottom = 270.0
+[node name="LevelUpPanel" type="CenterContainer" parent="LevelUpLayer" unique_id=1185265142]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
 
 [node name="LevelUpVBox" type="VBoxContainer" parent="LevelUpLayer/LevelUpPanel" unique_id=865983442]
 layout_mode = 2

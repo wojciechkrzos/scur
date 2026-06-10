@@ -12,7 +12,7 @@ const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 @onready var experience_panel: PanelContainer = $ExperiencePanel
 @onready var experience_label: Label = $ExperiencePanel/ExperienceMargin/ExperienceVBox/ExperienceLabel
 @onready var experience_bar: ProgressBar = $ExperiencePanel/ExperienceMargin/ExperienceVBox/ExperienceBar
-@onready var weapon_panel: PanelContainer = $WeaponPanel
+@onready var weapon_panel: MarginContainer = $WeaponPanel
 @onready var weapon_list: VBoxContainer = $WeaponPanel/WeaponMargin/WeaponVBox/WeaponList
 @onready var result_label: Label = $ResultLabel
 
@@ -112,8 +112,8 @@ func show_result(result: String) -> void:
 func _setup_styles() -> void:
 	status_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.28, 0.82, 0.68)))
 	timer_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(1.0, 0.66, 0.25)))
-	weapon_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.58, 0.68, 1.0)))
-	experience_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.42, 0.78, 1.0)))
+	weapon_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	experience_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	var progress_background := StyleBoxFlat.new()
 	progress_background.bg_color = Color(0.04, 0.06, 0.09, 0.92)
 	progress_background.set_corner_radius_all(5)
@@ -128,4 +128,12 @@ func _make_panel_style(border_color: Color) -> StyleBoxFlat:
 	style.border_color = border_color
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
+	return style
+
+func _make_transparent_panel_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(0)
 	return style

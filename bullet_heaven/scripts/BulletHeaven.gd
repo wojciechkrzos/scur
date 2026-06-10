@@ -412,8 +412,6 @@ func _open_level_up_ui(current_level: int) -> void:
 			var powerup_id := current_powerup_choices[index]
 			button.visible = true
 			button.disabled = false
-			button.text = _format_powerup_card_text(powerup_id)
-			button.icon = BHPowerups.get_powerup_icon(powerup_id)
 			_apply_choice_button_style(button, powerup_id)
 			button.set_meta("powerup_id", powerup_id)
 		else:
@@ -421,16 +419,12 @@ func _open_level_up_ui(current_level: int) -> void:
 	_update_token_ui()
 
 	level_up_panel.visible = true
-	if level_up_dimmer != null:
-		level_up_dimmer.visible = true
 	get_tree().paused = true
 	if audio_controller != null:
 		audio_controller.play_music("level_up")
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
-	if level_up_dimmer != null:
-		level_up_dimmer.visible = false
 	current_powerup_choices.clear()
 
 func _apply_powerup_from_button(button: Button) -> void:
@@ -449,26 +443,13 @@ func _apply_powerup_from_button(button: Button) -> void:
 		call_deferred("_resume_level_up_sequence")
 
 func _setup_level_up_ui_styles() -> void:
-	if level_up_dimmer == null:
-		level_up_dimmer = ColorRect.new()
-		level_up_dimmer.name = "LevelUpDimmer"
-		level_up_dimmer.anchors_preset = Control.PRESET_FULL_RECT
-		level_up_dimmer.anchor_right = 1.0
-		level_up_dimmer.anchor_bottom = 1.0
-		level_up_dimmer.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		level_up_dimmer.grow_vertical = Control.GROW_DIRECTION_BOTH
-		level_up_dimmer.color = Color(0.03, 0.02, 0.06, 0.72)
-		level_up_dimmer.visible = false
-		level_up_layer.add_child(level_up_dimmer)
-		level_up_layer.move_child(level_up_dimmer, 0)
-
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.09, 0.1, 0.14, 0.98)
+	panel_style.bg_color = Color(0.03, 0.04, 0.06, 0.0)
 	panel_style.border_width_left = 3
 	panel_style.border_width_top = 3
 	panel_style.border_width_right = 3
 	panel_style.border_width_bottom = 3
-	panel_style.border_color = Color(0.45, 0.75, 1.0, 0.95)
+	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.18)
 	panel_style.corner_radius_top_left = 14
 	panel_style.corner_radius_top_right = 14
 	panel_style.corner_radius_bottom_left = 14
@@ -522,30 +503,34 @@ func _format_powerup_card_text(powerup_id: int) -> String:
 	return "%s\n%s\n\n%s" % [name.to_upper(), kind_label, desc]
 
 func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
-	button.custom_minimum_size = Vector2(230.0, 250.0)
-	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.custom_minimum_size = Vector2(250.0, 290.0)
+	button.text = ""
+	button.icon = null
+	button.autowrap_mode = TextServer.AUTOWRAP_OFF
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.expand_icon = true
-	button.icon_max_width = 64
+	button.expand_icon = false
 	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	button.add_theme_font_size_override("font_size", 19)
+	button.add_theme_font_size_override("font_size", 18)
+	button.clip_text = false
+	button.focus_mode = Control.FOCUS_ALL
+	_populate_choice_button_content(button, powerup_id)
 
 	var data := BHPowerups.get_powerup_data(powerup_id)
 	var kind := String(data.get("kind", ""))
 	var border_color := Color(0.55, 0.7, 1.0, 1.0)
-	var fill_color := Color(0.13, 0.17, 0.24, 1.0)
+	var fill_color := Color(0.09, 0.11, 0.15, 1.0)
 	match kind:
 		"weapon":
 			border_color = Color(0.98, 0.68, 0.28, 1.0)
-			fill_color = Color(0.2, 0.14, 0.1, 1.0)
+			fill_color = Color(0.16, 0.11, 0.09, 1.0)
 		"speed":
 			border_color = Color(0.33, 0.9, 0.62, 1.0)
-			fill_color = Color(0.07, 0.2, 0.16, 1.0)
+			fill_color = Color(0.08, 0.16, 0.14, 1.0)
 		"shield":
 			border_color = Color(0.42, 0.78, 1.0, 1.0)
-			fill_color = Color(0.08, 0.13, 0.2, 1.0)
+			fill_color = Color(0.08, 0.12, 0.17, 1.0)
 
 	var normal_style := StyleBoxFlat.new()
 	normal_style.bg_color = fill_color
@@ -569,6 +554,80 @@ func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
 	button.add_theme_stylebox_override("hover", hover_style)
 	button.add_theme_stylebox_override("pressed", pressed_style)
 	button.add_theme_color_override("font_color", Color(0.97, 0.98, 1.0, 1.0))
+
+func _populate_choice_button_content(button: Button, powerup_id: int) -> void:
+	var content := button.get_node_or_null("CardContent") as VBoxContainer
+	if content == null:
+		content = VBoxContainer.new()
+		content.name = "CardContent"
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_theme_constant_override("separation", 8)
+		content.add_theme_constant_override("margin_left", 14)
+		content.add_theme_constant_override("margin_top", 14)
+		content.add_theme_constant_override("margin_right", 14)
+		content.add_theme_constant_override("margin_bottom", 14)
+		button.add_child(content)
+
+	var icon := content.get_node_or_null("Icon") as TextureRect
+	if icon == null:
+		icon = TextureRect.new()
+		icon.name = "Icon"
+		icon.custom_minimum_size = Vector2(88.0, 88.0)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(icon)
+
+	var title := content.get_node_or_null("Title") as Label
+	if title == null:
+		title = Label.new()
+		title.name = "Title"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title.add_theme_font_size_override("font_size", 20)
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(title)
+
+	var details := content.get_node_or_null("Details") as Label
+	if details == null:
+		details = Label.new()
+		details.name = "Details"
+		details.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		details.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details.add_theme_font_size_override("font_size", 15)
+		details.modulate = Color(0.92, 0.95, 1.0, 0.96)
+		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		details.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(details)
+
+	icon.texture = BHPowerups.get_powerup_icon(powerup_id)
+	title.text = BHPowerups.get_powerup_name(powerup_id).to_upper()
+	details.text = _format_powerup_card_details(powerup_id)
+
+func _format_powerup_card_details(powerup_id: int) -> String:
+	var desc := BHPowerups.get_powerup_description(powerup_id)
+	var data := BHPowerups.get_powerup_data(powerup_id)
+	var kind := String(data.get("kind", ""))
+	var kind_label := "TECH"
+	match kind:
+		"weapon":
+			kind_label = "BROŃ"
+		"speed":
+			kind_label = "MOBILNOŚĆ"
+		"shield":
+			kind_label = "OBRONA"
+
+	if kind == "weapon":
+		var weapon_id: int = int(data.get("weapon_id", -1))
+		var current_level: int = player.get_weapon_level(weapon_id)
+		var level_text := "NOWA BROŃ" if current_level == 0 else "POZIOM %d → %d" % [current_level, current_level + 1]
+		var upgrade_text := BHPowerups.get_upgrade_summary(weapon_id, current_level)
+		return "%s  •  %s\n\n%s\n\n%s" % [kind_label, level_text, desc, upgrade_text]
+
+	return "%s\n\n%s" % [kind_label, desc]
 
 func _update_token_ui() -> void:
 	if level_up_tokens_label == null:
