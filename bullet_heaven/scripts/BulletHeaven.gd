@@ -319,7 +319,7 @@ func _spawn_xp_pellet(spawn_position: Vector2, xp_amount: int) -> void:
 
 func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
-		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
+		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 
 	level_up_title.text = "Wybór Ulepszenia"
 	level_up_subtitle.text = "Poziom %02d  •  wybierz 1 z 3 kart" % current_level
@@ -494,7 +494,7 @@ func _on_reroll_button_pressed() -> void:
 		_update_token_ui()
 		return
 
-	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
+	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 	_open_level_up_ui(player.level)
 
 func _on_skip_button_pressed() -> void:
