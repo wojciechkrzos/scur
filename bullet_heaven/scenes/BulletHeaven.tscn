@@ -48,47 +48,127 @@ wait_time = 0.6
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1477039213]
 script = ExtResource("3_0h3")
 
-[node name="LevelLabel" type="Label" parent="HUD" unique_id=2108931035]
-offset_left = 12.0
-offset_top = 90.0
-offset_right = 120.0
-offset_bottom = 114.0
-text = "Poziom: 01"
+[node name="StatusPanel" type="PanelContainer" parent="HUD"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 270.0
+offset_bottom = 154.0
 
-[node name="ExperienceLabel" type="Label" parent="HUD" unique_id=472328116]
-offset_left = 12.0
-offset_top = 110.0
-offset_right = 170.0
-offset_bottom = 134.0
-text = "PD: 00 / 05"
+[node name="StatusMargin" type="MarginContainer" parent="HUD/StatusPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
 
-[node name="LivesLabel" type="Label" parent="HUD" unique_id=636490051]
-offset_left = 12.0
-offset_top = 10.0
-offset_right = 120.0
-offset_bottom = 34.0
-text = "Życia: ♥ ♥ ♥"
+[node name="StatusVBox" type="VBoxContainer" parent="HUD/StatusPanel/StatusMargin"]
+layout_mode = 2
+theme_override_constants/separation = 5
 
-[node name="KillsLabel" type="Label" parent="HUD" unique_id=1133086130]
-offset_left = 12.0
-offset_top = 30.0
-offset_right = 120.0
-offset_bottom = 54.0
-text = "Eliminacje: 0000"
+[node name="LivesLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
+layout_mode = 2
+text = "ZYYYCIA  ♥ ♥ ♥"
 
-[node name="TimerLabel" type="Label" parent="HUD" unique_id=1148597142]
-offset_left = 12.0
-offset_top = 50.0
-offset_right = 120.0
-offset_bottom = 74.0
-text = "Czas: 35.0"
+[node name="KillsLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
+layout_mode = 2
+text = "ELIMINACJE  0000"
 
-[node name="PatternLabel" type="Label" parent="HUD" unique_id=973689906]
-offset_left = 12.0
-offset_top = 70.0
-offset_right = 200.0
-offset_bottom = 94.0
-text = "Tryb: IMPULS"
+[node name="LevelLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
+layout_mode = 2
+text = "POZIOM  01"
+
+[node name="TimerPanel" type="PanelContainer" parent="HUD"]
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -92.0
+offset_top = 18.0
+offset_right = 92.0
+offset_bottom = 106.0
+
+[node name="TimerMargin" type="MarginContainer" parent="HUD/TimerPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="TimerVBox" type="VBoxContainer" parent="HUD/TimerPanel/TimerMargin"]
+layout_mode = 2
+
+[node name="TimerLabel" type="Label" parent="HUD/TimerPanel/TimerMargin/TimerVBox"]
+layout_mode = 2
+text = "035.0"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 34
+
+[node name="WaveLabel" type="Label" parent="HUD/TimerPanel/TimerMargin/TimerVBox"]
+layout_mode = 2
+text = "FALA 01"
+horizontal_alignment = 1
+
+[node name="WeaponPanel" type="MarginContainer" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -310.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = 330.0
+
+[node name="WeaponMargin" type="MarginContainer" parent="HUD/WeaponPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="WeaponVBox" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WeaponTitle" type="Label" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox"]
+layout_mode = 2
+text = "ARSENAŁ"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+
+[node name="WeaponSeparator" type="HSeparator" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox"]
+layout_mode = 2
+
+[node name="WeaponList" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="ExperiencePanel" type="PanelContainer" parent="HUD"]
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 180.0
+offset_top = -82.0
+offset_right = -180.0
+offset_bottom = -18.0
+
+[node name="ExperienceMargin" type="MarginContainer" parent="HUD/ExperiencePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 8
+
+[node name="ExperienceVBox" type="VBoxContainer" parent="HUD/ExperiencePanel/ExperienceMargin"]
+layout_mode = 2
+
+[node name="ExperienceLabel" type="Label" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox"]
+layout_mode = 2
+text = "PD  00 / 05"
+horizontal_alignment = 1
+
+[node name="ExperienceBar" type="ProgressBar" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+max_value = 5.0
+show_percentage = false
 
 [node name="ResultLabel" type="Label" parent="HUD" unique_id=1632523819]
 visible = false
@@ -102,16 +182,12 @@ vertical_alignment = 1
 
 [node name="LevelUpLayer" type="CanvasLayer" parent="." unique_id=1340151120]
 
-[node name="LevelUpPanel" type="PanelContainer" parent="LevelUpLayer" unique_id=1185265142]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -330.0
-offset_top = -230.0
-offset_right = 330.0
-offset_bottom = 230.0
+[node name="LevelUpPanel" type="CenterContainer" parent="LevelUpLayer" unique_id=1185265142]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
 
 [node name="LevelUpVBox" type="VBoxContainer" parent="LevelUpLayer/LevelUpPanel" unique_id=865983442]
 layout_mode = 2
@@ -132,19 +208,19 @@ layout_mode = 2
 theme_override_constants/separation = 14
 
 [node name="ChoiceButton1" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=278710398]
-custom_minimum_size = Vector2(188, 190)
+custom_minimum_size = Vector2(230, 250)
 layout_mode = 2
 text = "Ulepszenie 1"
 autowrap_mode = 3
 
 [node name="ChoiceButton2" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=1152640106]
-custom_minimum_size = Vector2(188, 190)
+custom_minimum_size = Vector2(230, 250)
 layout_mode = 2
 text = "Ulepszenie 2"
 autowrap_mode = 3
 
 [node name="ChoiceButton3" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=2036787672]
-custom_minimum_size = Vector2(188, 190)
+custom_minimum_size = Vector2(230, 250)
 layout_mode = 2
 text = "Ulepszenie 3"
 autowrap_mode = 3

@@ -4,6 +4,8 @@ signal player_died
 signal shot_spawned(shot: Node2D)
 signal experience_changed(current_xp: int, current_level: int, xp_to_next: int)
 signal leveled_up(new_level: int)
+signal weapon_inventory_changed(inventory: Dictionary)
+signal weapon_fired(weapon_id: int)
 
 const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
@@ -39,7 +41,7 @@ var is_invincible: bool = false
 var fight_active: bool = true
 var play_area: Rect2
 var bullet_container: Node2D
-var active_weapons: Array[int] = []
+var weapon_levels: Dictionary[int, int] = {}
 var spiral_phase: float = 0.0
 var speedup_stacks: int = 0
 var reroll_tokens: int = 1
@@ -72,7 +74,7 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	collision_mask = 1 | 4
 	anchor_position = area.get_center()
 	position = anchor_position
-	active_weapons = [BHPowerups.WeaponId.AOE_PULSE]
+	weapon_levels = {BHPowerups.WeaponId.AOE_PULSE: 1}
 	spiral_phase = 0.0
 	speedup_stacks = 0
 	reroll_tokens = 1
@@ -83,6 +85,7 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	_ensure_animation_sprite()
 	_update_walk_animation(0.0)
 	_update_experience_ui()
+	_emit_weapon_inventory_changed()
 
 	if not shoot_timer.timeout.is_connected(_shoot_burst):
 		shoot_timer.timeout.connect(_shoot_burst)
@@ -101,13 +104,15 @@ func _shoot_burst() -> void:
 	if not fight_active or not is_alive:
 		return
 
-	for weapon_id in active_weapons:
+	for weapon_id in get_owned_weapon_ids():
 		_fire_weapon(weapon_id)
 
 func _fire_weapon(weapon_id: int) -> void:
-	var weapon_data := BHPowerups.get_weapon_definition(weapon_id)
+	var weapon_level: int = get_weapon_level(weapon_id)
+	var weapon_data := BHPowerups.get_weapon_stats(weapon_id, weapon_level)
 	if weapon_data.is_empty():
 		return
+	weapon_fired.emit(weapon_id)
 
 	match String(weapon_data.get("fire_mode", "")):
 		"aoe_pulse":
@@ -129,14 +134,16 @@ func _fire_aoe_pulse(weapon_data: Dictionary) -> void:
 	var pulse = BHAoEPulseScript.new()
 	pulse.anchor_ref = self
 	pulse.damage = int(weapon_data.get("damage", 1))
+	pulse.radius = float(weapon_data.get("radius", pulse.radius))
 	pulse.lifetime = float(weapon_data.get("lifetime", pulse.lifetime))
 	pulse.position = position
 	pulse.add_to_group("bh_player_attack")
 	shot_spawned.emit(pulse)
 
 func _fire_vertical_jet(weapon_data: Dictionary) -> void:
-	var offsets: Array = weapon_data.get("offsets", [0.0])
-	for raw_offset in offsets:
+	var shot_count: int = int(weapon_data.get("shot_count", 3))
+	var spacing: float = float(weapon_data.get("spacing", 10.0))
+	for raw_offset in _get_centered_offsets(shot_count, spacing):
 		_spawn_bullet(
 			position + Vector2(float(raw_offset), 0.0),
 			Vector2.UP,
@@ -146,7 +153,7 @@ func _fire_vertical_jet(weapon_data: Dictionary) -> void:
 
 func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 	var shot_count := int(weapon_data.get("shot_count", 4))
-	var angle_step := float(weapon_data.get("angle_step", 0.45))
+	var angle_step: float = TAU / float(maxi(shot_count, 1))
 	var phase_step := float(weapon_data.get("phase_step", 0.35))
 	phase_step *= _get_spiral_combo_multiplier()
 	for i in shot_count:
@@ -160,31 +167,39 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 	spiral_phase += phase_step
 
 func _fire_homing_missile(weapon_data: Dictionary) -> void:
-	var missile = BHHomingMissileScript.new()
-	missile.position = position
-	missile.direction = Vector2.UP
-	missile.speed = float(weapon_data.get("shot_speed", missile.speed))
-	missile.turn_rate = float(weapon_data.get("turn_rate", missile.turn_rate))
-	missile.damage = int(weapon_data.get("damage", missile.damage))
-	missile.max_range = float(weapon_data.get("range", missile.max_range))
-	shot_spawned.emit(missile)
+	var shot_count: int = int(weapon_data.get("shot_count", 1))
+	for index in shot_count:
+		var missile = BHHomingMissileScript.new()
+		missile.position = position
+		var spread_angle: float = (float(index) - float(shot_count - 1) * 0.5) * 0.24
+		missile.direction = Vector2.UP.rotated(spread_angle)
+		missile.speed = float(weapon_data.get("shot_speed", missile.speed))
+		missile.turn_rate = float(weapon_data.get("turn_rate", missile.turn_rate))
+		missile.damage = int(weapon_data.get("damage", missile.damage))
+		missile.max_range = float(weapon_data.get("range", missile.max_range))
+		shot_spawned.emit(missile)
 
 func _fire_molotov_bomb(weapon_data: Dictionary) -> void:
-	var molotov = BHMolotovProjectileScript.new()
-	molotov.position = position + Vector2(0.0, -16.0)
-	molotov.direction = Vector2.from_angle(randf_range(0.0, TAU))
-	molotov.speed = float(weapon_data.get("shot_speed", molotov.speed))
-	molotov.damage = int(weapon_data.get("damage", molotov.damage))
-	molotov.max_distance = float(weapon_data.get("distance", molotov.max_distance))
-	molotov.explosion_damage = int(weapon_data.get("explosion_damage", molotov.explosion_damage))
-	molotov.explosion_radius = float(weapon_data.get("explosion_radius", molotov.explosion_radius))
-	molotov.explosion_lifetime = float(weapon_data.get("explosion_lifetime", molotov.explosion_lifetime))
-	shot_spawned.emit(molotov)
+	var shot_count: int = int(weapon_data.get("shot_count", 1))
+	var base_angle: float = randf_range(0.0, TAU)
+	for index in shot_count:
+		var molotov = BHMolotovProjectileScript.new()
+		molotov.position = position + Vector2(0.0, -16.0)
+		molotov.direction = Vector2.from_angle(base_angle + TAU * float(index) / float(shot_count))
+		molotov.speed = float(weapon_data.get("shot_speed", molotov.speed))
+		molotov.damage = int(weapon_data.get("damage", molotov.damage))
+		molotov.max_distance = float(weapon_data.get("distance", molotov.max_distance))
+		molotov.explosion_damage = int(weapon_data.get("explosion_damage", molotov.explosion_damage))
+		molotov.explosion_radius = float(weapon_data.get("explosion_radius", molotov.explosion_radius))
+		molotov.explosion_lifetime = float(weapon_data.get("explosion_lifetime", molotov.explosion_lifetime))
+		shot_spawned.emit(molotov)
 
 func _fire_fan_burst(weapon_data: Dictionary) -> void:
-	var spread_angles: Array = weapon_data.get("angles", [0.0])
-	for raw_angle in spread_angles:
-		var angle := float(raw_angle)
+	var shot_count: int = int(weapon_data.get("shot_count", 5))
+	var spread: float = float(weapon_data.get("spread", 0.84))
+	for index in shot_count:
+		var ratio: float = 0.5 if shot_count == 1 else float(index) / float(shot_count - 1)
+		var angle: float = lerpf(-spread * 0.5, spread * 0.5, ratio)
 		_spawn_bullet(
 			position,
 			Vector2.UP.rotated(angle),
@@ -255,7 +270,18 @@ func apply_powerup(powerup_id: int) -> void:
 	_update_experience_ui()
 
 func get_owned_weapon_ids() -> Array[int]:
-	return active_weapons.duplicate()
+	var weapon_ids: Array[int] = []
+	for weapon_id in weapon_levels.keys():
+		if int(weapon_levels[weapon_id]) > 0:
+			weapon_ids.append(int(weapon_id))
+	weapon_ids.sort()
+	return weapon_ids
+
+func get_weapon_level(weapon_id: int) -> int:
+	return int(weapon_levels.get(weapon_id, 0))
+
+func get_weapon_inventory() -> Dictionary:
+	return weapon_levels.duplicate(true)
 
 func get_reroll_tokens() -> int:
 	return reroll_tokens
@@ -288,25 +314,38 @@ func consume_skip_token() -> bool:
 func _activate_weapon(weapon_id: int) -> void:
 	if weapon_id == -1:
 		return
-	if not active_weapons.has(weapon_id):
-		active_weapons.append(weapon_id)
+	var current_level: int = get_weapon_level(weapon_id)
+	if current_level >= BHPowerups.MAX_WEAPON_LEVEL:
+		return
+	weapon_levels[weapon_id] = current_level + 1
+	_emit_weapon_inventory_changed()
 
 func _update_experience_ui() -> void:
 	experience_changed.emit(experience_points, level, xp_to_next_level)
 
 func get_pattern_name() -> String:
-	if active_weapons.is_empty():
+	if weapon_levels.is_empty():
 		return "NONE"
 
 	var names: Array[String] = []
-	for weapon_id in active_weapons:
+	for weapon_id in get_owned_weapon_ids():
 		names.append(BHPowerups.get_weapon_name(weapon_id))
 	if _has_spiral_speed_combo():
 		names.append("COMBO: Turbo Spirala")
 	return ", ".join(names)
 
 func _has_spiral_speed_combo() -> bool:
-	return speedup_stacks > 0 and active_weapons.has(BHPowerups.WeaponId.SPIRAL_STREAM)
+	return speedup_stacks > 0 and get_weapon_level(BHPowerups.WeaponId.SPIRAL_STREAM) > 0
+
+func _emit_weapon_inventory_changed() -> void:
+	weapon_inventory_changed.emit(get_weapon_inventory())
+
+func _get_centered_offsets(count: int, spacing: float) -> Array[float]:
+	var offsets: Array[float] = []
+	var center: float = float(count - 1) * 0.5
+	for index in count:
+		offsets.append((float(index) - center) * spacing)
+	return offsets
 
 func _get_spiral_combo_multiplier() -> float:
 	if not _has_spiral_speed_combo():

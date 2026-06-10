@@ -1,75 +1,102 @@
 extends CanvasLayer
 
-@onready var lives_label = $LivesLabel
-@onready var kills_label = $KillsLabel
-@onready var timer_label = $TimerLabel
-@onready var level_label = $LevelLabel
-@onready var experience_label = $ExperienceLabel
-@onready var pattern_label = $PatternLabel
-@onready var result_label = $ResultLabel
+const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
+
+@onready var status_panel: PanelContainer = $StatusPanel
+@onready var lives_label: Label = $StatusPanel/StatusMargin/StatusVBox/LivesLabel
+@onready var kills_label: Label = $StatusPanel/StatusMargin/StatusVBox/KillsLabel
+@onready var level_label: Label = $StatusPanel/StatusMargin/StatusVBox/LevelLabel
+@onready var timer_panel: PanelContainer = $TimerPanel
+@onready var timer_label: Label = $TimerPanel/TimerMargin/TimerVBox/TimerLabel
+@onready var wave_label: Label = $TimerPanel/TimerMargin/TimerVBox/WaveLabel
+@onready var experience_panel: PanelContainer = $ExperiencePanel
+@onready var experience_label: Label = $ExperiencePanel/ExperienceMargin/ExperienceVBox/ExperienceLabel
+@onready var experience_bar: ProgressBar = $ExperiencePanel/ExperienceMargin/ExperienceVBox/ExperienceBar
+@onready var weapon_panel: MarginContainer = $WeaponPanel
+@onready var weapon_list: VBoxContainer = $WeaponPanel/WeaponMargin/WeaponVBox/WeaponList
+@onready var result_label: Label = $ResultLabel
 
 var result_dimmer: ColorRect
 
 func _ready() -> void:
+	_setup_styles()
 	result_dimmer = ColorRect.new()
 	result_dimmer.name = "ResultDimmer"
-	result_dimmer.anchors_preset = Control.PRESET_FULL_RECT
-	result_dimmer.anchor_right = 1.0
-	result_dimmer.anchor_bottom = 1.0
-	result_dimmer.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	result_dimmer.grow_vertical = Control.GROW_DIRECTION_BOTH
-	result_dimmer.color = Color(0.0, 0.0, 0.0, 0.55)
+	result_dimmer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	result_dimmer.color = Color(0.0, 0.0, 0.0, 0.62)
 	result_dimmer.visible = false
 	add_child(result_dimmer)
-
-	if result_label != null:
-		result_label.anchors_preset = Control.PRESET_CENTER
-		result_label.anchor_left = 0.5
-		result_label.anchor_top = 0.5
-		result_label.anchor_right = 0.5
-		result_label.anchor_bottom = 0.5
-		result_label.offset_left = -340.0
-		result_label.offset_top = -70.0
-		result_label.offset_right = 340.0
-		result_label.offset_bottom = 70.0
-		result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		result_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		result_label.add_theme_font_size_override("font_size", 52)
 	move_child(result_dimmer, 0)
 
 func setup(duration: float, lives: int) -> void:
 	update_lives(lives)
 	update_kills(0)
 	update_timer(duration)
+	update_wave(1)
 	update_level(1)
 	update_experience(0, 5)
-	update_pattern("IMPULS")
 	result_label.visible = false
 	if result_dimmer != null:
 		result_dimmer.visible = false
 
-func update_lives(n: int) -> void:
-	lives_label.text = "Życia: " + "♥ ".repeat(max(n, 0))
+func update_lives(count: int) -> void:
+	lives_label.text = "ŻYCIA  " + "♥ ".repeat(maxi(count, 0))
 
-func update_kills(k: int) -> void:
-	kills_label.text = "Eliminacje: %04d" % k
+func update_kills(count: int) -> void:
+	kills_label.text = "ELIMINACJE  %04d" % count
 
-func update_timer(t: float) -> void:
-	var secs = max(t, 0.0)
-	timer_label.text = "Czas: %05.1f" % secs
-	if secs < 8.0:
-		timer_label.modulate = Color(1.0, 0.4, 0.4)
-	else:
-		timer_label.modulate = Color(1.0, 1.0, 1.0)
+func update_timer(time_left: float) -> void:
+	var seconds: float = maxf(time_left, 0.0)
+	timer_label.text = "%05.1f" % seconds
+	timer_label.modulate = Color(1.0, 0.38, 0.38) if seconds < 8.0 else Color(0.96, 0.98, 1.0)
+
+func update_wave(wave: int) -> void:
+	wave_label.text = "FALA %02d" % wave
 
 func update_level(level: int) -> void:
-	level_label.text = "Poziom: %02d" % level
+	level_label.text = "POZIOM  %02d" % level
 
 func update_experience(current_xp: int, xp_to_next: int) -> void:
-	experience_label.text = "PD: %02d / %02d" % [current_xp, xp_to_next]
+	experience_label.text = "PD  %02d / %02d" % [current_xp, xp_to_next]
+	experience_bar.max_value = maxf(float(xp_to_next), 1.0)
+	experience_bar.value = clampf(float(current_xp), 0.0, experience_bar.max_value)
 
-func update_pattern(name_text: String) -> void:
-	pattern_label.text = "Tryb: " + name_text
+func update_pattern(_name_text: String) -> void:
+	pass
+
+func update_weapon_inventory(inventory: Dictionary) -> void:
+	for child in weapon_list.get_children():
+		child.queue_free()
+
+	var weapon_ids: Array[int] = []
+	for weapon_id in inventory.keys():
+		if int(inventory[weapon_id]) > 0:
+			weapon_ids.append(int(weapon_id))
+	weapon_ids.sort()
+
+	for weapon_id in weapon_ids:
+		var row := HBoxContainer.new()
+		row.custom_minimum_size = Vector2(250.0, 38.0)
+		row.add_theme_constant_override("separation", 10)
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(32.0, 32.0)
+		icon.texture = BHPowerups.get_weapon_icon(weapon_id)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		row.add_child(icon)
+		var name_label := Label.new()
+		name_label.text = BHPowerups.get_weapon_name(weapon_id)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_label.add_theme_font_size_override("font_size", 17)
+		row.add_child(name_label)
+		var level_label_node := Label.new()
+		level_label_node.text = "POZ. %d" % int(inventory[weapon_id])
+		level_label_node.modulate = Color(1.0, 0.74, 0.32)
+		level_label_node.add_theme_font_size_override("font_size", 17)
+		row.add_child(level_label_node)
+		weapon_list.add_child(row)
 
 func show_result(result: String) -> void:
 	result_label.visible = true
@@ -81,3 +108,32 @@ func show_result(result: String) -> void:
 	else:
 		result_label.text = "✦ DERATYZACJA ✦"
 		result_label.modulate = Color(1.0, 0.4, 0.4)
+
+func _setup_styles() -> void:
+	status_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.28, 0.82, 0.68)))
+	timer_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(1.0, 0.66, 0.25)))
+	weapon_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	experience_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var progress_background := StyleBoxFlat.new()
+	progress_background.bg_color = Color(0.04, 0.06, 0.09, 0.92)
+	progress_background.set_corner_radius_all(5)
+	var progress_fill := progress_background.duplicate() as StyleBoxFlat
+	progress_fill.bg_color = Color(0.28, 0.78, 1.0, 1.0)
+	experience_bar.add_theme_stylebox_override("background", progress_background)
+	experience_bar.add_theme_stylebox_override("fill", progress_fill)
+
+func _make_panel_style(border_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.035, 0.045, 0.07, 0.9)
+	style.border_color = border_color
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	return style
+
+func _make_transparent_panel_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(0)
+	return style
