@@ -1,421 +1,292 @@
 extends Resource
 
+const marek_base = preload("res://assets/portraits/marek_base.png")
 const szymon_base = preload("res://assets/portraits/szymon_base.png")
 const gosia_base = preload("res://assets/portraits/gosia_base.png")
-#const bobr_base = preload("res://assets/portraits/bobr_base.png")
-const bobr_base = null
-
-func get_lines(stage1_choice: String = ""):
-	if stage1_choice == "choice_fight":
-		return _fight_path()
-	elif stage1_choice == "choice_join":
-		return _join_path()
-	return _fight_path()  # fallback
+const boss2_base = preload("res://assets/portraits/boss2_base.png")
 
 
-# ─────────────────────────────
-# FIGHT PATH (stage1 = choice_fight)
-# Szymon walczył o Marka — jest na ścieżce sprawiedliwości
-# ─────────────────────────────
-func _fight_path() -> Array:
+func get_lines():
+	# Stage 2 nie rozgałęzia już głównego flow — tylko logika wyboru w jednym drzewie
 	return [
+		# ─────────────────────────────
+		# INTRO / WEJŚCIE DO KANAŁÓW (UNIFIED)
+		# ─────────────────────────────
 		{
-			"id": "s2_f_1",
+			"id": 0,
+			"speaker": "",
+			"text": "Szymon dociera do centralnej komory kanałów. Nad czarną wodą wisi platforma. Na niej stoi Bóbrmistrz. Za nim neon: 'SZCZURZA MAFIA - WROCŁAW OD 1987'."
+		},
+				{
+			"id": 1,
 			"speaker": "Bóbrmistrz",
 			"text": "No, no. Czurewski. Żyjesz. Myślałem że B.O.S.S. cię przetworzy.",
-			"portrait": bobr_base
+			"portrait": boss2_base
 		},
 		{
-			"id": "s2_f_2",
+			"id": 2,
 			"speaker": "Szymon",
 			"text": "Miał za dużo do powiedzenia. Pogadaliśmy.",
 			"portrait": szymon_base
 		},
 		{
-			"id": "s2_f_3",
+			"id": 3,
 			"speaker": "Bóbrmistrz",
 			"text": "Gadatliwy był zawsze. Korporacyjny szczur do szpiku kości.",
-			"portrait": bobr_base
+			"portrait": boss2_base
 		},
 		{
-			"id": "s2_f_4",
+			"id": 4,
 			"speaker": "Szymon",
 			"text": "A ty?",
 			"portrait": szymon_base
 		},
 		{
-			"id": "s2_f_5",
+			"id": 5,
 			"speaker": "Bóbrmistrz",
 			"text": "Ja jestem inny rodzaj szczura. Zbudowałem to. Własnoręcznie. Zanim Corp O'Szczur stał się korporacją — był projekt. I ja byłem tym projektem.",
-			"portrait": bobr_base
+			"portrait": boss2_base
 		},
 		{
-			"id": "s2_f_6",
+			"id": 6,
+			"speaker": "Bóbrmistrz",
+			"text": "Ale... czy jestem z tego dumny? Hm... Jestem zmęczony. Różnica jest spora.",
+			"portrait": boss2_base
+		},
+
+		# ─────────────────────────────
+		# MARK REVEAL (UNIFIED)
+		# ─────────────────────────────
+		{
+			"id": 7,
 			"speaker": "Szymon",
-			"text": "I co — jesteś z tego dumny?",
+			"text": "Marek Olejnik. Gdzie jest.",
 			"portrait": szymon_base
 		},
 		{
-			"id": "s2_f_7",
+			"id": 8,
 			"speaker": "Bóbrmistrz",
-			"text": "Dumny? Jestem zmęczony. Różnica jest spora.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_f_8",
-			"speaker": "Bóbrmistrz",
-			"text": "Szukasz Marka.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_f_9",
-			"speaker": "Szymon",
-			"text": "Tak.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_f_10",
-			"speaker": "Bóbrmistrz",
-			"text": "Znalazłeś go. Tyle że nie w sposób w jaki sobie wyobrażałeś. Projekt Kret. Sieć nadzoru pod całym miastem. Marek jest w środku. Dosłownie.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_f_11",
-			"speaker": "Szymon",
-			"text": "Co to znaczy dosłownie.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_f_12",
-			"speaker": "Bóbrmistrz",
-			"text": "Corp O'Szczur zrobił z niego węzeł. Jego pamięć, kontakty, wiedza o systemie — zintegrowane. Żyje. Ale odepnij go bez protokołu — a może zabijesz jego, może system, może jedno i drugie.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_f_13",
-			"speaker": "Szymon",
-			"text": "Dlaczego mi to mówisz?",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_f_14",
-			"speaker": "Bóbrmistrz",
-			"text": "Bo jestem stary. Bo mam dość. I bo jeśli ktoś ma szansę to skończyć — powinien wiedzieć w co wchodzi.",
-			"portrait": bobr_base
-		},
-		# ── DEAD MAN'S SWITCH REVEAL ──────────────────────────────────────────
-		{
-			"id": "s2_f_15",
-			"speaker": "Bóbrmistrz",
-			"text": "Widzisz tę mapę?",
-			"portrait": bobr_base,
-			"effect": "point_at_map"
-		},
-		{
-			"id": "s2_f_16",
-			"speaker": "Bóbrmistrz",
-			"text": "Myślałeś że to węzły sieci. To nie węzły.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_f_17",
-			"speaker": "Bóbrmistrz",
-			"text": "Jak Marek przestaje — zegary pod miastem zaczynają liczyć. Wrocław ma wtedy może cztery minuty. Może pięć. Zależy od wilgotności.",
-			"portrait": bobr_base,
-			"effect": "shake"
-		},
-		{
-			"id": "s2_f_18",
-			"speaker": "Szymon",
 			"text": "...",
-			"portrait": szymon_base
+			"portrait": boss2_base
 		},
 		{
-			"id": "s2_f_19",
-			"speaker": "Szymon",
-			"text": "Corp O'Szczur podłożyło materiały wybuchowe pod całe miasto.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_f_20",
+			"id": 9,
 			"speaker": "Bóbrmistrz",
-			"text": "Nie podłożyło. Ja podłożyłem. Na ich zlecenie. Dwadzieścia lat temu.",
-			"portrait": bobr_base
+			"text": "Skąd znasz to nazwisko?",
+			"portrait": boss2_base
 		},
 		{
-			"id": "s2_f_21",
+			"id": 10,
 			"speaker": "Szymon",
-			"text": "I teraz mi o tym mówisz.",
+			"text": "To mój kolega. Zaginął dwa lata temu.",
 			"portrait": szymon_base
 		},
 		{
-			"id": "s2_f_22",
+			"id": 11,
 			"speaker": "Bóbrmistrz",
-			"text": "Teraz ci o tym mówię. Mam klucz dostępowy do węzła Marka. Nie oddam go za darmo. Przekonaj mnie że warto.",
-			"portrait": bobr_base,
+			"text": "Nie zaginął.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 12,
+			"speaker": "",
+			"text": "Za Bóbrmistrzem, w ścianie tunelu, tkwi Marek. Podłączony kablami. Oczy otwarte. Uśmiecha się."
+		},
+		{
+			"id": 13,
+			"speaker": "Marek",
+			"text": "Cześć, Szymon.",
+			"portrait": marek_base
+		},
+		{
+			"id": 14,
+			"speaker": "Szymon",
+			"text": "...Marek.",
+			"portrait": szymon_base
+		},
+		{
+			"id": 15,
+			"speaker": "Marek",
+			"text": "Długo cię nie było.",
+			"portrait": marek_base
+		},
+		{
+			"id": 16,
+			"speaker": "Szymon",
+			"text": "Co z tobą zrobili?",
+			"portrait": szymon_base
+		},
+		{
+			"id": 17,
+			"speaker": "Marek",
+			"text": "Nic złego. Jest spokojnie. Ciągle.",
+			"portrait": marek_base
+		},
+
+		# ─────────────────────────────
+		# CORE EXPLANATION (UNIFIED)
+		# ─────────────────────────────
+		{
+			"id": 18,
+			"speaker": "Bóbrmistrz",
+			"text": "Projekt Kret. Interfejs biologiczny. Marek nie jest więźniem. Jest węzłem.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 19,
+			"speaker": "Marek",
+			"text": "Czuję każdy tunel. Każdy węzeł. Jak oddychanie.",
+			"portrait": marek_base
+		},
+		{
+			"id": 20,
+			"speaker": "Marek",
+			"text": "Jeśli mnie odłączysz... uruchomi się procedura awaryjna.",
+			"portrait": marek_base
+		},
+		{
+			"id": 21,
+			"speaker": "Szymon",
+			"text": "Co to znaczy?",
+			"portrait": szymon_base
+		},
+		{
+			"id": 22,
+			"speaker": "Marek",
+			"text": "Zawalenia. Eksplozje. Zalania. Pół Wrocławia pod ziemią.",
+			"portrait": marek_base
+		},
+		{
+			"id": 23,
+			"speaker": "Szymon",
+			"text": "Kłamiesz.",
+			"portrait": szymon_base
+		},
+		{
+			"id": 24,
+			"speaker": "Marek",
+			"text": "Może. Nie pamiętam już co to kłamstwo.",
+			"portrait": marek_base
+		},
+
+		# ─────────────────────────────
+		# FINAL PRE-BOSS CHOICE (UNIFIED)
+		# ─────────────────────────────
+		{
+			"id": 25,
+			"speaker": "Bóbrmistrz",
+			"text": "Dead man's switch. Najlepszy wynalazek Corp O'Szczur.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 26,
+			"speaker": "Bóbrmistrz",
+			"text": "Nie pilnujesz więźnia. Więzień pilnuje miasta.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 27,
+			"speaker": "Szymon",
+			"text": "A ty? Co z tego masz?",
+			"portrait": szymon_base
+		},
+		{
+			"id": 28,
+			"speaker": "Bóbrmistrz",
+			"text": "Spokój. Kanały działają. Miasto nie wie. Wszyscy żyją.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 29,
+			"speaker": "Bóbrmistrz",
+			"text": "A teraz ty. Co robisz, Czurewski?",
+			"portrait": boss2_base,
 			"choices": [
 				{
-					"id": "s2_save",
-					"text": "Marek jest moim przyjacielem. To mi wystarczy.",
-					"jump_to": "s2_f_save_1"
+					"id": "choice_stage2_a",
+					"text": "Wyrwę go. Nawet jeśli wszystko się zawali.",
+					"jump_to": 30
 				},
 				{
-					"id": "s2_understand",
-					"text": "Chcę zniszczyć Corp O'Szczur. Na zawsze.",
-					"jump_to": "s2_f_under_1"
+					"id": "choice_stage2_b",
+					"text": "Potrzebuję dostępu. Marek zostaje.",
+					"jump_to": 40
 				}
 			]
 		},
 
-		# ── ŚCIEŻKA A: lojalność ────────────────────────────────────────────
+		# ─────────────────────────────
+		# PATH A (SAVE / HEROIC)
+		# ─────────────────────────────
 		{
-			"id": "s2_f_save_1",
+			"id": 30,
+			"speaker": "Bóbrmistrz",
+			"text": "Sentymentalny głupiec.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 31,
+			"speaker": "Marek",
+			"text": "Szymon... nie musisz.",
+			"portrait": marek_base
+		},
+		{
+			"id": 32,
 			"speaker": "Szymon",
-			"text": "Nie mam ci nic do udowodnienia. Marek żyje, Corp O'Szczur go więzi — to wystarczający powód.",
+			"text": "Zamknij się. Idę po ciebie.",
 			"portrait": szymon_base
 		},
 		{
-			"id": "s2_f_save_2",
-			"speaker": "Bóbrmistrz",
-			"text": "...Lojalność to nie jest coś, co rozumiem. Ale jest szczere.",
-			"portrait": bobr_base
+			"id": 33,
+			"speaker": "Gosia",
+			"text": "...dobrze.",
+			"portrait": gosia_base
 		},
 		{
-			"id": "s2_f_save_3",
-			"speaker": "Bóbrmistrz",
-			"text": "Weź. Jak go uwolnisz bez protokołu wyłączenia, system może zareagować. Nikt nie wie jak.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_f_save_4",
-			"speaker": "Szymon",
-			"text": "Ryzyko akceptuję.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_f_save_5",
-			"speaker": "Bóbrmistrz",
-			"text": "To teraz udowodnij że jesteś wart więcej ode mnie. Bo ja bym wziął klucz siłą.",
-			"portrait": bobr_base,
+			"id": 34,
+			"speaker": "Gosia",
+			"text": "Pokonaj go.",
+			"portrait": gosia_base,
 			"end_dialogue": true
 		},
 
-		# ── ŚCIEŻKA B: zniszczenie ──────────────────────────────────────────
+		# ─────────────────────────────
+		# PATH B (SYSTEM / COLD)
+		# ─────────────────────────────
 		{
-			"id": "s2_f_under_1",
+			"id": 40,
+			"speaker": "Bóbrmistrz",
+			"text": "Ha. Wiedziałem.",
+			"portrait": boss2_base
+		},
+		{
+			"id": 41,
+			"speaker": "Marek",
+			"text": "Rozumiem. To rozsądne.",
+			"portrait": marek_base
+		},
+		{
+			"id": 42,
 			"speaker": "Szymon",
-			"text": "Nie chodzi już tylko o Marka. Chcę dokopać się do rdzenia — znaleźć coś, co ich definitywnie skończy. A Marek ma to w głowie.",
+			"text": "Przepraszam.",
 			"portrait": szymon_base
 		},
 		{
-			"id": "s2_f_under_2",
-			"speaker": "Bóbrmistrz",
-			"text": "Zniszczenie. Nie przejęcie.",
-			"portrait": bobr_base
+			"id": 43,
+			"speaker": "Marek",
+			"text": "Nie ma za co.",
+			"portrait": marek_base
 		},
 		{
-			"id": "s2_f_under_3",
-			"speaker": "Bóbrmistrz",
-			"text": "Pierwszy raz od lat słyszę kogoś, kto tego chce zamiast tego drugiego. Dlatego właśnie nie mogę ci po prostu dać klucza. Musisz go zabrać. Wtedy będziesz wiedział na pewno, że go chcesz — a nie że ktoś ci go podarował.",
-			"portrait": bobr_base,
-			"end_dialogue": true
-		}
-	]
-
-
-# ─────────────────────────────
-# JOIN PATH (stage1 = choice_join)
-# Szymon pytał o kasę — jest na ścieżce pragmatyzmu
-# ─────────────────────────────
-func _join_path() -> Array:
-	return [
-		{
-			"id": "s2_j_1",
-			"speaker": "Bóbrmistrz",
-			"text": "Czurewski. Słyszałem że B.O.S.S. ci złożył ofertę. I że prawie ją przyjąłeś.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_2",
-			"speaker": "Szymon",
-			"text": "Prawie to duże słowo.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_3",
-			"speaker": "Bóbrmistrz",
-			"text": "W Corp O'Szczur prawie to podpisana umowa. Usiądź. Mamy chwilę.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_4",
-			"speaker": "Szymon",
-			"text": "Nie usiądę.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_5",
-			"speaker": "Bóbrmistrz",
-			"text": "Jak chcesz.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_6",
-			"speaker": "Szymon",
-			"text": "Szukam Marka.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_7",
-			"speaker": "Bóbrmistrz",
-			"text": "Wiem. Ale powiedz mi — po co? Nie dlatego że to przyjaciel. Naprawdę.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_8",
-			"speaker": "Szymon",
+			"id": 44,
+			"speaker": "Gosia",
 			"text": "...",
-			"portrait": szymon_base
+			"portrait": gosia_base
 		},
 		{
-			"id": "s2_j_9",
-			"speaker": "Bóbrmistrz",
-			"text": "Bo widziałem już takich jak ty. Przychodzą tutaj z planem, z celem, z jasną głową. I za każdym razem, jak dochodzą do Marka — plan się sypie. Bo Marek nie jest tym, czego szukają.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_10",
-			"speaker": "Szymon",
-			"text": "To co jest?",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_11",
-			"speaker": "Bóbrmistrz",
-			"text": "Węzłem. Projekt Kret. Corp O'Szczur zrobił z niego centrum systemu — jego pamięć, kontakty, wiedza. Zintegrowany. Od lat.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_12",
-			"speaker": "Szymon",
-			"text": "...żyje?",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_13",
-			"speaker": "Bóbrmistrz",
-			"text": "Żyje. Ale nie wiem czy to jeszcze Marek, którego pamiętasz.",
-			"portrait": bobr_base
-		},
-		# ── DEAD MAN'S SWITCH REVEAL ──────────────────────────────────────────
-		{
-			"id": "s2_j_14",
-			"speaker": "Bóbrmistrz",
-			"text": "Widzisz tę mapę?",
-			"portrait": bobr_base,
-			"effect": "point_at_map"
-		},
-		{
-			"id": "s2_j_15",
-			"speaker": "Bóbrmistrz",
-			"text": "Myślałeś że to węzły sieci. To nie węzły.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_16",
-			"speaker": "Bóbrmistrz",
-			"text": "Jak Marek przestaje — zegary pod miastem zaczynają liczyć. Wrocław ma wtedy może cztery minuty. Może pięć. Zależy od wilgotności.",
-			"portrait": bobr_base,
-			"effect": "shake"
-		},
-		{
-			"id": "s2_j_17",
-			"speaker": "Szymon",
-			"text": "...",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_18",
-			"speaker": "Szymon",
-			"text": "Corp O'Szczur podłożyło materiały wybuchowe pod całe miasto.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_19",
-			"speaker": "Bóbrmistrz",
-			"text": "Nie podłożyło. Ja podłożyłem. Na ich zlecenie. Dwadzieścia lat temu.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_20",
-			"speaker": "Szymon",
-			"text": "I teraz mi o tym mówisz.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_21",
-			"speaker": "Bóbrmistrz",
-			"text": "Teraz ci o tym mówię. Mam klucz do węzła. I mam pytanie — jak do niego dojdziesz, co zrobisz?",
-			"portrait": bobr_base,
-			"choices": [
-				{
-					"id": "s2_save",
-					"text": "Wyciągnę go. Cokolwiek to kosztuje.",
-					"jump_to": "s2_j_save_1"
-				},
-				{
-					"id": "s2_understand",
-					"text": "To zależy co tam znajdę.",
-					"jump_to": "s2_j_under_1"
-				}
-			]
-		},
-
-		# ── ŚCIEŻKA A: ocalenie ─────────────────────────────────────────────
-		{
-			"id": "s2_j_save_1",
-			"speaker": "Szymon",
-			"text": "Jeśli żyje — wyciągam go. Nie ma tu nic do analizowania.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_save_2",
-			"speaker": "Bóbrmistrz",
-			"text": "Dawno nikt tak nie powiedział.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_save_3",
-			"speaker": "Bóbrmistrz",
-			"text": "Masz. Jak go odepniesz bez protokołu, system może zareagować. Może gwałtownie.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_save_4",
-			"speaker": "Bóbrmistrz",
-			"text": "Ale najpierw sprawdzę czy jesteś wystarczająco twardy na to co czeka wyżej.",
-			"portrait": bobr_base,
-			"end_dialogue": true
-		},
-
-		# ── ŚCIEŻKA B: pragmatyzm ───────────────────────────────────────────
-		{
-			"id": "s2_j_under_1",
-			"speaker": "Szymon",
-			"text": "Nie obiecuję niczego w ciemno. Chcę wiedzieć z czym wychodzę.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s2_j_under_2",
-			"speaker": "Bóbrmistrz",
-			"text": "Uczciwa odpowiedź. Pierwszy raz od dawna.",
-			"portrait": bobr_base
-		},
-		{
-			"id": "s2_j_under_3",
-			"speaker": "Bóbrmistrz",
-			"text": "Klucz jest do zabrania. Ale nie za darmo — to nigdy nie jest za darmo. Pokaż mi najpierw że warto go dać komuś takiemu jak ty.",
-			"portrait": bobr_base,
+			"id": 45,
+			"speaker": "",
+			"text": "Jej głos nie niesie emocji. Jakby coś w niej się odłączyło.",
 			"end_dialogue": true
 		}
 	]
