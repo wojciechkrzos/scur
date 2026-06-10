@@ -479,8 +479,8 @@ func _update_token_ui() -> void:
 	if level_up_tokens_label == null:
 		return
 
-	var rerolls := player.get_reroll_tokens()
-	var skips := player.get_skip_tokens()
+	var rerolls: int = player.get_reroll_tokens()
+	var skips: int = player.get_skip_tokens()
 	level_up_tokens_label.text = "Tokeny: Reroll %d  •  Skip %d" % [rerolls, skips]
 	if reroll_button != null:
 		reroll_button.disabled = rerolls <= 0
