@@ -1,6 +1,7 @@
 extends SceneTree
 
 const BHAudio = preload("res://bullet_heaven/scripts/BHAudio.gd")
+const BossFightScene = preload("res://bullet_hell/scenes/BossFight.tscn")
 
 var failures: Array[String] = []
 
@@ -27,6 +28,21 @@ func _run() -> void:
 	_expect(audio.music_player.playing, "Bullet Heaven theme should be playing")
 	var music_stream := audio.music_player.stream as AudioStreamOggVorbis
 	_expect(music_stream != null and music_stream.loop, "Bullet Heaven theme should loop")
+	_expect(audio.music_player.process_mode == Node.PROCESS_MODE_ALWAYS, "Music should continue while gameplay is paused")
+
+	paused = true
+	await create_timer(0.1, true).timeout
+	_expect(audio.music_player.playing, "Music player should remain active during level-up pause")
+	paused = false
+
+	var boss_fight = BossFightScene.instantiate()
+	root.add_child(boss_fight)
+	await process_frame
+	boss_fight.start_fight(boss_fight.BOSS_A)
+	_expect(boss_fight.audio_controller != null, "Bullet Hell should create an audio controller")
+	_expect(boss_fight.audio_controller.music_player.playing, "Bullet Hell should play the combat theme")
+	boss_fight.queue_free()
+	await process_frame
 	audio.stop_music()
 	audio.stop_all_sfx()
 	await create_timer(1.0).timeout

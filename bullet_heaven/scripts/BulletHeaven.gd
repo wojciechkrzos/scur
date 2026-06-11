@@ -420,8 +420,6 @@ func _open_level_up_ui(current_level: int) -> void:
 
 	level_up_panel.visible = true
 	get_tree().paused = true
-	if audio_controller != null:
-		audio_controller.play_music("level_up")
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
@@ -437,8 +435,6 @@ func _apply_powerup_from_button(button: Button) -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
-	if audio_controller != null:
-		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
 
@@ -662,8 +658,6 @@ func _on_skip_button_pressed() -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
-	if audio_controller != null:
-		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
 
