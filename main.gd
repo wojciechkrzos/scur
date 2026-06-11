@@ -54,11 +54,9 @@ func _unhandled_input(event):
 	if is_instance_valid(start_menu) and start_menu.visible:
 		return
 	if event.is_action_pressed("ui_cancel"):
-		print("ESC OK")
-		if get_tree().paused:
-			_close_pause()
-		else:
+		if not get_tree().paused:
 			_open_pause()
+			get_viewport().set_input_as_handled()
 
 
 #METODY DO VN
