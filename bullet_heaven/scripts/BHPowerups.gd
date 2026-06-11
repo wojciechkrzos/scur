@@ -2,16 +2,23 @@ extends RefCounted
 
 const MAX_WEAPON_LEVEL := 5
 
+
 enum WeaponId {
 	AOE_PULSE,
 	VERTICAL_JET,
 	SPIRAL_STREAM,
+	HOMING_MISSILE,
+	MOLOTOV_BOMB,
+	FAN_BURST
 }
 
 enum PowerupId {
 	WEAPON_1,
 	WEAPON_2,
 	WEAPON_3,
+	WEAPON_4,
+	WEAPON_5,
+	WEAPON_6,
 	SPEEDUP,
 	SHIELD,
 }

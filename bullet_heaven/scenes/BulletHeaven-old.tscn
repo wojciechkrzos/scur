@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://mrd6gdgdx7ag"]
+[gd_scene format=3 uid="uid://wya73xd4w58"]
 
 [ext_resource type="Script" uid="uid://boaokpusn1l7f" path="res://bullet_heaven/scripts/BulletHeaven.gd" id="1_0h1"]
 [ext_resource type="Script" uid="uid://xts6h1ryccs7" path="res://bullet_heaven/scripts/BHPlayer.gd" id="2_0h2"]
@@ -48,37 +48,37 @@ wait_time = 0.6
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1477039213]
 script = ExtResource("3_0h3")
 
-[node name="StatusPanel" type="PanelContainer" parent="HUD" unique_id=538955432]
+[node name="StatusPanel" type="PanelContainer" parent="HUD"]
 offset_left = 18.0
 offset_top = 18.0
 offset_right = 270.0
 offset_bottom = 154.0
 
-[node name="StatusMargin" type="MarginContainer" parent="HUD/StatusPanel" unique_id=1198897555]
+[node name="StatusMargin" type="MarginContainer" parent="HUD/StatusPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 10
 
-[node name="StatusVBox" type="VBoxContainer" parent="HUD/StatusPanel/StatusMargin" unique_id=224221438]
+[node name="StatusVBox" type="VBoxContainer" parent="HUD/StatusPanel/StatusMargin"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="LivesLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=1800568097]
+[node name="LivesLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
 layout_mode = 2
 text = "ZYYYCIA  ♥ ♥ ♥"
 
-[node name="KillsLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=699477887]
+[node name="KillsLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
 layout_mode = 2
 text = "ELIMINACJE  0000"
 
-[node name="LevelLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=587662059]
+[node name="LevelLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox"]
 layout_mode = 2
 text = "POZIOM  01"
 
-[node name="TimerPanel" type="PanelContainer" parent="HUD" unique_id=540526780]
-anchors_preset = 5
+[node name="TimerPanel" type="PanelContainer" parent="HUD"]
+anchors_preset = 10
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -92.0
@@ -86,28 +86,28 @@ offset_top = 18.0
 offset_right = 92.0
 offset_bottom = 106.0
 
-[node name="TimerMargin" type="MarginContainer" parent="HUD/TimerPanel" unique_id=1822910093]
+[node name="TimerMargin" type="MarginContainer" parent="HUD/TimerPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 8
 
-[node name="TimerVBox" type="VBoxContainer" parent="HUD/TimerPanel/TimerMargin" unique_id=625314908]
+[node name="TimerVBox" type="VBoxContainer" parent="HUD/TimerPanel/TimerMargin"]
 layout_mode = 2
 
-[node name="TimerLabel" type="Label" parent="HUD/TimerPanel/TimerMargin/TimerVBox" unique_id=1568307784]
+[node name="TimerLabel" type="Label" parent="HUD/TimerPanel/TimerMargin/TimerVBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 34
 text = "035.0"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 34
 
-[node name="WaveLabel" type="Label" parent="HUD/TimerPanel/TimerMargin/TimerVBox" unique_id=494417158]
+[node name="WaveLabel" type="Label" parent="HUD/TimerPanel/TimerMargin/TimerVBox"]
 layout_mode = 2
 text = "FALA 01"
 horizontal_alignment = 1
 
-[node name="WeaponPanel" type="MarginContainer" parent="HUD" unique_id=35341165]
+[node name="WeaponPanel" type="MarginContainer" parent="HUD"]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -116,32 +116,32 @@ offset_top = 18.0
 offset_right = -18.0
 offset_bottom = 330.0
 
-[node name="WeaponMargin" type="MarginContainer" parent="HUD/WeaponPanel" unique_id=1444725806]
+[node name="WeaponMargin" type="MarginContainer" parent="HUD/WeaponPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 12
 
-[node name="WeaponVBox" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin" unique_id=238362648]
+[node name="WeaponVBox" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="WeaponTitle" type="Label" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox" unique_id=82274785]
+[node name="WeaponTitle" type="Label" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 text = "ARSENAŁ"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
 
-[node name="WeaponSeparator" type="HSeparator" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox" unique_id=340390614]
+[node name="WeaponSeparator" type="HSeparator" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox"]
 layout_mode = 2
 
-[node name="WeaponList" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox" unique_id=1141970585]
+[node name="WeaponList" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="ExperiencePanel" type="PanelContainer" parent="HUD" unique_id=186547550]
-anchors_preset = 15
+[node name="ExperiencePanel" type="PanelContainer" parent="HUD"]
+anchors_preset = 12
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 180.0
@@ -149,22 +149,22 @@ offset_top = -82.0
 offset_right = -180.0
 offset_bottom = -18.0
 
-[node name="ExperienceMargin" type="MarginContainer" parent="HUD/ExperiencePanel" unique_id=1491031938]
+[node name="ExperienceMargin" type="MarginContainer" parent="HUD/ExperiencePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 8
 
-[node name="ExperienceVBox" type="VBoxContainer" parent="HUD/ExperiencePanel/ExperienceMargin" unique_id=1500303640]
+[node name="ExperienceVBox" type="VBoxContainer" parent="HUD/ExperiencePanel/ExperienceMargin"]
 layout_mode = 2
 
-[node name="ExperienceLabel" type="Label" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox" unique_id=1164688228]
+[node name="ExperienceLabel" type="Label" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox"]
 layout_mode = 2
 text = "PD  00 / 05"
 horizontal_alignment = 1
 
-[node name="ExperienceBar" type="ProgressBar" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox" unique_id=898035833]
+[node name="ExperienceBar" type="ProgressBar" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox"]
 custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 max_value = 5.0
@@ -186,10 +186,12 @@ vertical_alignment = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
 
 [node name="LevelUpVBox" type="VBoxContainer" parent="LevelUpLayer/LevelUpPanel" unique_id=865983442]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 8
 
 [node name="LevelUpTitle" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=200387801]
 layout_mode = 2
@@ -203,7 +205,7 @@ horizontal_alignment = 1
 
 [node name="ChoiceRow" type="HBoxContainer" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1205547846]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 8
 
 [node name="ChoiceButton1" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=278710398]
 custom_minimum_size = Vector2(230, 250)
@@ -222,25 +224,6 @@ custom_minimum_size = Vector2(230, 250)
 layout_mode = 2
 text = "Ulepszenie 3"
 autowrap_mode = 3
-
-[node name="TokenRow" type="HBoxContainer" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1360008001]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="TokenLabel" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow" unique_id=1254599182]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Tokeny: Reroll 1  •  Skip 1"
-
-[node name="RerollButton" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow" unique_id=846486788]
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-text = "Reroll"
-
-[node name="SkipButton" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow" unique_id=1272838260]
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-text = "Skip"
 
 [node name="LevelUpHint" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1140964023]
 layout_mode = 2

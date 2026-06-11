@@ -10,6 +10,7 @@ const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
 const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
+const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
@@ -73,6 +74,9 @@ var audio_controller
 @onready var choice_button_1 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton1
 @onready var choice_button_2 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton2
 @onready var choice_button_3 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton3
+@onready var level_up_tokens_label: Label = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/TokenLabel
+@onready var reroll_button: Button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/RerollButton
+@onready var skip_button: Button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/SkipButton
 
 func get_stage_type() -> String:
 	return "heaven"

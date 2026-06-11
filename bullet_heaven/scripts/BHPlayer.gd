@@ -10,6 +10,8 @@ signal weapon_fired(weapon_id: int)
 const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
+const BHHomingMissileScript = preload("res://bullet_heaven/scripts/BHHomingMissile.gd")
+const BHMolotovProjectileScript = preload("res://bullet_heaven/scripts/BHMolotovProjectile.gd")
 
 const BASE_SPEED := 230.0
 const BASE_MAX_LIVES := 3
@@ -45,6 +47,7 @@ var anchor_position: Vector2 = Vector2.ZERO
 var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
 var anim_sprite: Sprite2D
+var speedup_stacks: int = 0
 
 const INVINCIBILITY_DURATION := 1.2
 
@@ -244,6 +247,7 @@ func apply_powerup(powerup_id: int) -> void:
 			_activate_weapon(int(powerup_data.get("weapon_id", -1)))
 		"speed":
 			speed = min(speed + float(powerup_data.get("value", 0.0)), MAX_PLAYER_SPEED)
+			speedup_stacks += 1
 		"shield":
 			var extra_lives := int(powerup_data.get("value", 1))
 			max_lives += extra_lives
