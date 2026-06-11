@@ -1,16 +1,18 @@
 extends Resource
 const boss1_base = preload("res://assets/portraits/boss1_base.png")
 const szymon_base = preload("res://assets/portraits/szymon_base.png")
-
 func get_lines(choice_id: String = ""):
-	if choice_id == "choice_fight":
-		return _path_fight()
-	elif choice_id == "choice_join":
-		return _path_join()
-	else:
-		return _path_fight()  # fallback
+	match choice_id:
+		"choice_stage1_a":
+			return _path_a()
 
-func _path_fight() -> Array:
+		"choice_stage1_b":
+			return _path_b()
+
+		_:
+			return _path_a()
+
+func _path_a() -> Array:
 	return [
 		{
 			"id": 0,
@@ -33,7 +35,7 @@ func _path_fight() -> Array:
 		},
 	]
 
-func _path_join() -> Array:
+func _path_b() -> Array:
 	return [
 		{
 			"id": 0,

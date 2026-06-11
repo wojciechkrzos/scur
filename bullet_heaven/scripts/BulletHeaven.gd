@@ -51,6 +51,9 @@ var swarm_warning_remaining: float = 0.0
 var pending_swarm_side: int = -1
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
+var stage_profile: String = "stage1"
+var initial_run_state: Dictionary = {}
+var placeholder_square_texture: Texture2D = null
 var level_up_dimmer: ColorRect
 var swarm_warning_indicator
 var audio_controller
@@ -78,6 +81,10 @@ var audio_controller
 func get_stage_type() -> String:
 	return "heaven"
 
+func configure_stage(profile: String, run_state: Dictionary = {}) -> void:
+	stage_profile = profile
+	initial_run_state = run_state.duplicate(true)
+
 func start_fight() -> void:
 	play_area_rect = get_viewport_rect()
 	_update_world_scroll_limits()
@@ -98,10 +105,13 @@ func start_fight() -> void:
 			player_collision_radius = (player_shape_node.shape as CircleShape2D).radius
 
 	player.setup(play_area_rect, bullet_container)
+	_apply_initial_run_state()
 	hud.setup(stage_duration, player.max_lives)
 	hud.update_pattern(player.get_pattern_name())
 	hud.update_weapon_inventory(player.get_weapon_inventory())
 	backdrop.setup(play_area_rect, world_size_px)
+	if backdrop.has_method("set_stage"):
+		backdrop.set_stage(stage_profile)
 	backdrop.set_scroll_offset(world_offset)
 	enemy_container.visible = true
 	enemy_container.position = world_offset
@@ -807,6 +817,10 @@ func _apply_world_delta(applied_delta: Vector2) -> void:
 	backdrop.set_scroll_offset(world_offset)
 
 func _spawn_stage_obstacles() -> void:
+	if stage_profile == "stage2":
+		_spawn_stage2_placeholder_obstacles()
+		return
+
 	var world_center := play_area_rect.get_center()
 	var world_top_left := world_center - world_size_px * 0.5
 	var fountain_texture: Texture2D = _load_texture(fountain_texture_path)
@@ -850,6 +864,70 @@ func _spawn_stage_obstacles() -> void:
 		pigeon_right_mid.set_visual_flip_h(true)
 		pigeon_right_mid.position = world_top_left + Vector2(world_size_px.x * 0.82, world_size_px.y * 0.44)
 		obstacle_container.add_child(pigeon_right_mid)
+
+func _spawn_stage2_placeholder_obstacles() -> void:
+	var square_texture := _get_placeholder_square_texture()
+	var world_center := play_area_rect.get_center()
+	var offsets: Array[Vector2] = [
+		Vector2(0.0, -180.0),
+		Vector2(-260.0, 40.0),
+		Vector2(260.0, 40.0),
+		Vector2(-120.0, 220.0),
+		Vector2(120.0, 220.0),
+	]
+	for offset in offsets:
+		var square = BHObstacleScript.new()
+		square.setup(square_texture, 18.0, 3.0)
+		square.position = world_center + offset
+		obstacle_container.add_child(square)
+
+func _get_placeholder_square_texture() -> Texture2D:
+	if placeholder_square_texture != null:
+		return placeholder_square_texture
+	var image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	image.fill(Color.WHITE)
+	placeholder_square_texture = ImageTexture.create_from_image(image)
+	return placeholder_square_texture
+
+func _apply_initial_run_state() -> void:
+	if initial_run_state.is_empty():
+		return
+
+	player.max_lives = maxi(int(initial_run_state.get("max_lives", player.max_lives)), 1)
+	player.lives = clampi(int(initial_run_state.get("lives", player.max_lives)), 1, player.max_lives)
+	player.level = maxi(int(initial_run_state.get("level", player.level)), 1)
+	player.experience_points = maxi(int(initial_run_state.get("experience_points", player.experience_points)), 0)
+	player.xp_to_next_level = maxi(int(initial_run_state.get("xp_to_next_level", player.xp_to_next_level)), 1)
+	player.speed = float(initial_run_state.get("speed", player.speed))
+	player.spiral_phase = float(initial_run_state.get("spiral_phase", player.spiral_phase))
+	player.speedup_stacks = maxi(int(initial_run_state.get("speedup_stacks", player.speedup_stacks)), 0)
+	player.reroll_tokens = maxi(int(initial_run_state.get("reroll_tokens", player.reroll_tokens)), 0)
+	player.skip_tokens = maxi(int(initial_run_state.get("skip_tokens", player.skip_tokens)), 0)
+
+	if initial_run_state.has("weapon_levels"):
+		player.restore_weapon_inventory(initial_run_state.get("weapon_levels", {}))
+	elif initial_run_state.has("active_weapons"):
+		var legacy_inventory: Dictionary = {}
+		for weapon_id in initial_run_state.get("active_weapons", []):
+			legacy_inventory[int(weapon_id)] = 1
+		player.restore_weapon_inventory(legacy_inventory)
+
+	player._update_experience_ui()
+
+func get_run_state() -> Dictionary:
+	return {
+		"lives": player.lives,
+		"max_lives": player.max_lives,
+		"experience_points": player.experience_points,
+		"level": player.level,
+		"xp_to_next_level": player.xp_to_next_level,
+		"speed": player.speed,
+		"weapon_levels": player.get_weapon_inventory(),
+		"spiral_phase": player.spiral_phase,
+		"speedup_stacks": player.speedup_stacks,
+		"reroll_tokens": player.reroll_tokens,
+		"skip_tokens": player.skip_tokens,
+	}
 
 func _load_texture(path: String) -> Texture2D:
 	if path.is_empty():

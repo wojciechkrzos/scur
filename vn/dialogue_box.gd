@@ -36,6 +36,12 @@ const DIALOGUE_BACKGROUNDS := {
 	"tutorial": "res://assets/vn/background_tutorial.png",
 	"stage1_pre_boss": "res://assets/vn/background_stage_1_pre_boss.png",
 	"stage1_post_boss": "res://assets/vn/background_stage_1_post_boss.png",
+	"stage2_intro": "res://assets/vn/background_stage_2.png",
+	"stage2_pre_boss": "res://assets/vn/background_stage_2.png",
+	"stage2_post_boss": "res://assets/vn/background_stage_2.png",
+	"stage3_intro": "res://assets/vn/background_stage_3.png",
+	"stage3_pre_boss": "res://assets/vn/background_stage_3.png",
+	"stage3_post_boss": "res://assets/vn/background_stage_3.png",
 }
 
 func _ready() -> void:
@@ -67,11 +73,11 @@ func _ready() -> void:
 	
 	#PODPIECIE LOGIKI SKIP BUTTONA + STYLING
 	skip_button.pressed.connect(_on_skip_pressed)
-	skip_button.offset_right = - get_viewport().get_visible_rect().size.x + panel.custom_minimum_size.x + skip_button.size.x + 10
-	skip_button.offset_bottom = -10.0
+	skip_button.offset_right = - get_viewport().get_visible_rect().size.x + panel.custom_minimum_size.x + 250
+	skip_button.offset_bottom = -190.0
 	next_button.pressed.connect(_on_next_pressed)
-	next_button.offset_right = skip_button.offset_right - next_button.size.x - 12.0
-	next_button.offset_bottom = -10.0
+	next_button.offset_right = skip_button.offset_right - next_button.size.x - 20
+	next_button.offset_bottom = -190.0
 	_apply_dialogue_background()
 
 func set_dialogue_context(dialogue_id: String) -> void:
@@ -240,8 +246,11 @@ func _show_current_line() -> void:
 	dialogue_text.visible_characters = 0
 	
 	var portrait_texture = line.get("portrait", null)
-	portrait.texture = portrait_texture
-	portrait.visible = portrait_texture != null
+	if portrait_texture is String:
+		var portrait_path := str(portrait_texture)
+		portrait_texture = null if portrait_path.is_empty() else load(portrait_path)
+	portrait.texture = portrait_texture if portrait_texture is Texture2D else null
+	portrait.visible = portrait.texture != null
 	
 	visible_characters_count = 0
 	visible_characters_progress = 0.0
@@ -283,11 +292,15 @@ func _show_choices(choices: Array) -> void:
 func _on_choice_selected(choice_data: Dictionary) -> void:
 	last_choice_id = str(choice_data.get("id", ""))
 	if choice_data.has("jump_to"):
-		var target_id = int(choice_data["jump_to"])
+		var target_id: Variant = choice_data["jump_to"]
+		if not id_to_index.has(target_id):
+			var target_string := str(target_id)
+			if target_string.is_valid_int():
+				target_id = int(target_string)
 		if id_to_index.has(target_id):
 			current_line_index = id_to_index[target_id]
 		else:
-			push_error("Nie znaleziono id: " + str(target_id))
+			push_error("Nie znaleziono id: " + str(choice_data["jump_to"]))
 			return
 		_show_current_line()
 		return

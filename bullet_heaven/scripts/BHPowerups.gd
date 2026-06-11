@@ -2,13 +2,14 @@ extends RefCounted
 
 const MAX_WEAPON_LEVEL := 5
 
+
 enum WeaponId {
 	AOE_PULSE,
 	VERTICAL_JET,
 	SPIRAL_STREAM,
 	HOMING_MISSILE,
 	MOLOTOV_BOMB,
-	FAN_BURST,
+	FAN_BURST
 }
 
 enum PowerupId {
@@ -112,9 +113,6 @@ const POWERUP_ORDER: Array[int] = [
 	PowerupId.WEAPON_1,
 	PowerupId.WEAPON_2,
 	PowerupId.WEAPON_3,
-	PowerupId.WEAPON_4,
-	PowerupId.WEAPON_5,
-	PowerupId.WEAPON_6,
 	PowerupId.SPEEDUP,
 	PowerupId.SHIELD,
 ]

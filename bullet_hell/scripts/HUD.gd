@@ -1,83 +1,94 @@
 ## HUD.gd
-## Interfejs gracza: życia, score, timer, HP bossa, wynik walki.
+## Nowoczesny, czysty interfejs bez pozycjonowania na sztywno.
 
 extends CanvasLayer
 
-@onready var lives_label = $LivesLabel
-@onready var score_label = $ScoreLabel
-@onready var timer_label = $TimerLabel
-@onready var boss_hp_bar = $BossHPBar
+@onready var lives_label = $UIMainContainer/Sidebar/LivesLabel
+@onready var score_label = $UIMainContainer/Sidebar/ScoreLabel
+@onready var timer_label = $UIMainContainer/TopRow/TimerLabel
+@onready var boss_hp_label = $UIMainContainer/TopRow/BossHPContainer/BossHPLabel
+@onready var boss_hp_bar = $UIMainContainer/TopRow/BossHPContainer/BossHPBar
 @onready var win_label = $WinLabel
 
 var result_dimmer: ColorRect
-
 var _score_flash_timer: float = 0.0
 
 func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	if result_dimmer == null:
 		result_dimmer = ColorRect.new()
 		result_dimmer.anchors_preset = Control.PRESET_FULL_RECT
-		result_dimmer.anchor_right = 1.0
-		result_dimmer.anchor_bottom = 1.0
-		result_dimmer.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		result_dimmer.grow_vertical = Control.GROW_DIRECTION_BOTH
-		result_dimmer.color = Color(0.0, 0.0, 0.0, 0.58)
+		result_dimmer.color = Color(0.01, 0.01, 0.03, 0.75)
 		result_dimmer.visible = false
 		add_child(result_dimmer)
 		move_child(result_dimmer, 0)
 
 	win_label.anchors_preset = Control.PRESET_CENTER
-	win_label.anchor_left = 0.5
-	win_label.anchor_top = 0.5
-	win_label.anchor_right = 0.5
-	win_label.anchor_bottom = 0.5
-	win_label.offset_left = -340.0
-	win_label.offset_top = -70.0
-	win_label.offset_right = 340.0
-	win_label.offset_bottom = 70.0
 	win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	win_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	win_label.add_theme_font_size_override("font_size", 52)
+	win_label.add_theme_font_size_override("font_size", 44)
+	win_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	win_label.add_theme_constant_override("outline_size", 10)
 	win_label.visible = false
 	result_dimmer.visible = false
 	
-	#TODO zmienic ten layout z "na sztywno" na np margin container, vbox container i top/bottom row hbox container
-	lives_label.offset_top = 40
-	score_label.offset_top = 60
-	
+	# Stylizacja paska zdrowia bossa na agresywny, neonowy róż
 	boss_hp_bar.max_value = boss_max_hp
 	boss_hp_bar.value = boss_max_hp
+	boss_hp_bar.show_percentage = false
 	
-	if win_condition == 0:  # SURVIVE
-		timer_label.modulate = Color(0.4, 1.0, 0.4)
-	else:  # DAMAGE
-		timer_label.modulate = Color(1.0, 0.6, 0.2)
+	var sb_bg = StyleBoxFlat.new()
+	sb_bg.bg_color = Color(0.08, 0.08, 0.12, 0.8)
+	sb_bg.corner_radius_top_left = 3
+	sb_bg.corner_radius_bottom_left = 3
+	
+	var sb_fill = StyleBoxFlat.new()
+	sb_fill.bg_color = Color(0.95, 0.0, 0.35)
+	sb_fill.corner_radius_top_left = 3
+	sb_fill.corner_radius_bottom_left = 3
+	
+	boss_hp_bar.add_theme_stylebox_override("background", sb_bg)
+	boss_hp_bar.add_theme_stylebox_override("fill", sb_fill)
+	
+	boss_hp_label.visible = win_condition != 0
+	boss_hp_bar.visible = win_condition != 0
+	
+	# Nadanie klimatycznych wielkości czcionek i obramowania tekstu
+	_apply_text_style(timer_label, 36)
+	_apply_text_style(lives_label, 22)
+	_apply_text_style(score_label, 22)
+	_apply_text_style(boss_hp_label, 16)
+	
+	if win_condition == 0: # SURVIVE
+		timer_label.modulate = Color(0.3, 0.9, 0.4)
+	else: # DAMAGE
+		timer_label.modulate = Color(1.0, 0.6, 0.1)
 	
 	update_lives(3)
 
+func _apply_text_style(label: Label, size: int) -> void:
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	label.add_theme_constant_override("outline_size", 6)
 
 func _process(delta: float) -> void:
 	if _score_flash_timer > 0:
 		_score_flash_timer -= delta
-		score_label.modulate = Color(1, 1, 0.3) if fmod(_score_flash_timer * 10, 1) > 0.5 else Color(1,1,1)
+		score_label.modulate = Color(1, 0.9, 0.2) if fmod(_score_flash_timer * 12, 1) > 0.5 else Color(1,1,1)
 	else:
 		score_label.modulate = Color(1, 1, 1)
 
-
 func update_lives(n: int) -> void:
-	lives_label.text = "Życia: " + "♥ ".repeat(max(n, 0))
-
+	lives_label.text = "ŻYCIA: " + "♥ ".repeat(max(n, 0))
+	lives_label.modulate = Color(1.0, 0.3, 0.45) if n > 0 else Color(0.5, 0.5, 0.5)
 
 func update_score(s: int) -> void:
-	score_label.text = "Wynik: %07d" % s
-
+	score_label.text = "WYNIK: %07d" % s
 
 func update_timer(t: float) -> void:
 	var secs: float = max(t, 0.0)
-	timer_label.text = "Czas: %05.1f" % secs
-	# Czerwony gdy mało czasu
+	timer_label.text = "%04.1f" % secs
 	if secs < 10.0:
-		timer_label.modulate = Color(1.0, 0.3, 0.3)
+		timer_label.modulate = Color(1.0, 0.2, 0.2)
 
 func hide_timer() -> void:
 	timer_label.visible = false
@@ -85,10 +96,12 @@ func hide_timer() -> void:
 func update_boss_hp(hp: float, _max_hp: float) -> void:
 	boss_hp_bar.value = hp
 
+func set_boss_hp_visible(enabled: bool) -> void:
+	boss_hp_label.visible = enabled
+	boss_hp_bar.visible = enabled
 
 func flash_score() -> void:
 	_score_flash_timer = 0.3
-
 
 func show_result(result: String) -> void:
 	win_label.visible = true
@@ -96,7 +109,7 @@ func show_result(result: String) -> void:
 		result_dimmer.visible = true
 	if result == "win":
 		win_label.text = "✦ ZWYCIĘSTWO ✦"
-		win_label.modulate = Color(0.4, 1.0, 0.4)
+		win_label.modulate = Color(0.3, 1.0, 0.5)
 	else:
 		win_label.text = "✦ DERATYZACJA ✦"
-		win_label.modulate = Color(1.0, 0.3, 0.3)
+		win_label.modulate = Color(1.0, 0.2, 0.2)

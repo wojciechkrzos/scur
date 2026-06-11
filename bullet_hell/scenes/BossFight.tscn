@@ -87,33 +87,52 @@ color = Color(0, 0.5527905, 0.5527904, 1)
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1954525983]
 script = ExtResource("4_sakb4")
 
-[node name="LivesLabel" type="Label" parent="HUD" unique_id=2077584508]
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 67.0
-offset_bottom = 33.0
-text = "Życia: 3"
+[node name="UIMainContainer" type="MarginContainer" parent="HUD" unique_id=1032697015]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="ScoreLabel" type="Label" parent="HUD" unique_id=956268702]
-offset_left = 10.0
-offset_top = 30.0
-offset_right = 71.0
-offset_bottom = 53.0
-text = "Wynik: 0"
+[node name="TopRow" type="HBoxContainer" parent="HUD/UIMainContainer" unique_id=1418728723]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 20
 
-[node name="TimerLabel" type="Label" parent="HUD" unique_id=940434938]
-offset_left = 10.0
-offset_top = 50.0
-offset_right = 50.0
-offset_bottom = 73.0
-text = "Czas: 30"
+[node name="BossHPContainer" type="VBoxContainer" parent="HUD/UIMainContainer/TopRow" unique_id=834906465]
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="BossHPLabel" type="Label" parent="HUD" unique_id=602615661]
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 77.0
-offset_bottom = 33.0
-text = "PASEK BOSS"
+[node name="BossHPLabel" type="Label" parent="HUD/UIMainContainer/TopRow/BossHPContainer" unique_id=602615661]
+layout_mode = 2
+text = "SYSTEM OBRONNY"
+
+[node name="BossHPBar" type="ProgressBar" parent="HUD/UIMainContainer/TopRow/BossHPContainer" unique_id=871340437]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+value = 100.0
+
+[node name="TimerLabel" type="Label" parent="HUD/UIMainContainer/TopRow" unique_id=940434938]
+layout_mode = 2
+text = "30.0"
+
+[node name="Sidebar" type="VBoxContainer" parent="HUD/UIMainContainer" unique_id=743765907]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="LivesLabel" type="Label" parent="HUD/UIMainContainer/Sidebar" unique_id=2077584508]
+layout_mode = 2
+text = "Życia: ♥ ♥ ♥"
+
+[node name="ScoreLabel" type="Label" parent="HUD/UIMainContainer/Sidebar" unique_id=956268702]
+layout_mode = 2
+text = "Wynik: 0000000"
 
 [node name="WinLabel" type="Label" parent="HUD" unique_id=1925111805]
 visible = false
@@ -122,11 +141,3 @@ offset_top = 250.0
 offset_right = 240.0
 offset_bottom = 273.0
 text = "✦ DERATYZACJA ✦"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="BossHPBar" type="ProgressBar" parent="HUD" unique_id=871340437]
-offset_left = 80.0
-offset_top = 10.0
-offset_right = 400.0
-offset_bottom = 37.0

@@ -283,6 +283,16 @@ func get_weapon_level(weapon_id: int) -> int:
 func get_weapon_inventory() -> Dictionary:
 	return weapon_levels.duplicate(true)
 
+func restore_weapon_inventory(inventory: Dictionary) -> void:
+	weapon_levels.clear()
+	for raw_weapon_id in inventory.keys():
+		var weapon_id := int(raw_weapon_id)
+		var weapon_level := clampi(int(inventory[raw_weapon_id]), 1, BHPowerups.MAX_WEAPON_LEVEL)
+		weapon_levels[weapon_id] = weapon_level
+	if weapon_levels.is_empty():
+		weapon_levels[BHPowerups.WeaponId.AOE_PULSE] = 1
+	_emit_weapon_inventory_changed()
+
 func get_reroll_tokens() -> int:
 	return reroll_tokens
 
