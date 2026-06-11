@@ -36,6 +36,12 @@ const DIALOGUE_BACKGROUNDS := {
 	"tutorial": "res://assets/vn/background_tutorial.png",
 	"stage1_pre_boss": "res://assets/vn/background_stage_1_pre_boss.png",
 	"stage1_post_boss": "res://assets/vn/background_stage_1_post_boss.png",
+	"stage2_intro": "res://assets/vn/background_stage_2.png",
+	"stage2_pre_boss": "res://assets/vn/background_stage_2.png",
+	"stage2_post_boss": "res://assets/vn/background_stage_2.png",
+	"stage3_intro": "res://assets/vn/background_stage_3.png",
+	"stage3_pre_boss": "res://assets/vn/background_stage_3.png",
+	"stage3_post_boss": "res://assets/vn/background_stage_3.png",
 }
 
 func _ready() -> void:
@@ -67,11 +73,11 @@ func _ready() -> void:
 	
 	#PODPIECIE LOGIKI SKIP BUTTONA + STYLING
 	skip_button.pressed.connect(_on_skip_pressed)
-	skip_button.offset_right = - get_viewport().get_visible_rect().size.x + panel.custom_minimum_size.x + skip_button.size.x + 10
-	skip_button.offset_bottom = -10.0
+	skip_button.offset_right = - get_viewport().get_visible_rect().size.x + panel.custom_minimum_size.x + 250
+	skip_button.offset_bottom = -190.0
 	next_button.pressed.connect(_on_next_pressed)
-	next_button.offset_right = skip_button.offset_right - next_button.size.x - 12.0
-	next_button.offset_bottom = -10.0
+	next_button.offset_right = skip_button.offset_right - next_button.size.x - 20
+	next_button.offset_bottom = -190.0
 	_apply_dialogue_background()
 
 func set_dialogue_context(dialogue_id: String) -> void:

@@ -5,25 +5,34 @@ const SZYMON_BASE = preload("res://assets/portraits/SZYMON_BASE.png")
 const GOSIA_BASE = preload("res://assets/portraits/GOSIA_BASE.png")
 const MAREK_BASE = preload("res://assets/portraits/MAREK_BASE.png")
 
-func get_lines(choice_id: String = ""):
-	if choice_id == "choice_aaa":
-		return _path_aaa()
-	elif choice_id == "choice_aab":
-		return _path_aab()
-	elif choice_id == "choice_aba":
-		return _path_aba()
-	elif choice_id == "choice_abb":
-		return _path_abb()
-	elif choice_id == "choice_baa":
-		return _path_baa()
-	elif choice_id == "choice_bab":
-		return _path_bab()
-	elif choice_id == "choice_bba":
-		return _path_bba()
-	elif choice_id == "choice_bbb":
-		return _path_bbb()
-	else:
-		return _path_aaa()
+func get_lines(ending_id: String = ""):
+	match ending_id:
+		"aaa":
+			return _path_aaa()
+
+		"aab":
+			return _path_aab()
+
+		"aba":
+			return _path_aba()
+
+		"abb":
+			return _path_abb()
+
+		"baa":
+			return _path_baa()
+
+		"bab":
+			return _path_bab()
+
+		"bba":
+			return _path_bba()
+
+		"bbb":
+			return _path_bbb()
+
+		_:
+			return _path_aaa()
 
 
 # ─────────────────────────────

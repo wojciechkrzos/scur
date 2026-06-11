@@ -5,49 +5,22 @@ const gosia_base = preload("res://assets/portraits/gosia_base.png")
 const matka_base = preload("res://assets/portraits/boss3_base.png")
 
 func get_lines(choice_id: String = ""):
-	if choice_id == "choice_s3_destroy":
-		return _destroy_path()
-	elif choice_id == "choice_s3_take":
-		return _take_path()
-	else:
-		return _destroy_path()
+	match choice_id:
+		"choice_stage3_a":
+			return _path_a()
+
+		"choice_stage3_b":
+			return _path_b()
+
+		_:
+			return _path_a()
 
 
 # ─────────────────────────────
 # PATH A: DESTROY
 # ─────────────────────────────
-func _destroy_path() -> Array:
+func _path_a() -> Array:
 	return [
-		{
-			"id": "s3_d_1",
-			"speaker": "Matka",
-			"text": "Zniszczyć. Klasyka.",
-			"portrait": matka_base
-		},
-		{
-			"id": "s3_d_2",
-			"speaker": "Szymon",
-			"text": "Koniec systemu.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s3_d_3",
-			"speaker": "Matka",
-			"text": "A potem co?",
-			"portrait": matka_base
-		},
-		{
-			"id": "s3_d_4",
-			"speaker": "Szymon",
-			"text": "Wrocław sobie poradzi.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s3_d_5",
-			"speaker": "Matka",
-			"text": "Zawsze ktoś go zastępuje.",
-			"portrait": matka_base
-		},
 		{
 			"id": "s3_d_6",
 			"speaker": "",
@@ -73,38 +46,8 @@ func _destroy_path() -> Array:
 # ─────────────────────────────
 # PATH B: TAKE
 # ─────────────────────────────
-func _take_path() -> Array:
+func _path_b() -> Array:
 	return [
-		{
-			"id": "s3_t_1",
-			"speaker": "Matka",
-			"text": "Przejąć. Też klasyka.",
-			"portrait": matka_base
-		},
-		{
-			"id": "s3_t_2",
-			"speaker": "Szymon",
-			"text": "Znam system.",
-			"portrait": szymon_base
-		},
-		{
-			"id": "s3_t_3",
-			"speaker": "Matka",
-			"text": "Wszyscy znają. Dopóki nie siądą na miejscu.",
-			"portrait": matka_base
-		},
-		{
-			"id": "s3_t_4",
-			"speaker": "Gosia",
-			"text": "Szymon...",
-			"portrait": gosia_base
-		},
-		{
-			"id": "s3_t_5",
-			"speaker": "Szymon",
-			"text": "Wiem.",
-			"portrait": szymon_base
-		},
 		{
 			"id": "s3_t_6",
 			"speaker": "Matka",

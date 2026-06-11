@@ -41,7 +41,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="BackgroundImage" type="TextureRect" parent="Root"]
+[node name="BackgroundImage" type="TextureRect" parent="Root" unique_id=205104370]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -68,11 +68,12 @@ stretch_mode = 5
 [node name="Panel" type="PanelContainer" parent="Root" unique_id=1270029070]
 custom_minimum_size = Vector2(800, 180)
 layout_mode = 1
-anchors_preset = 2
+anchors_preset = 12
 anchor_top = 1.0
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -180.0
-offset_right = 40.0
+offset_top = -52.0
+grow_horizontal = 2
 grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_njxd2")
 
@@ -94,6 +95,7 @@ fit_content = true
 layout_mode = 2
 
 [node name="SkipButton" type="Button" parent="Root" unique_id=1830653220]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -102,11 +104,13 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -58.0
 offset_top = -31.0
+offset_right = 62.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "Pomiń"
 
-[node name="NextButton" type="Button" parent="Root"]
+[node name="NextButton" type="Button" parent="Root" unique_id=727891494]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -115,6 +119,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -152.0
 offset_top = -31.0
+offset_right = -32.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "Dalej"

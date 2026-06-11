@@ -77,9 +77,11 @@ func _run_boss(which: String) -> void:
 func notify_vn_finished(_result = null) -> void:
 	if typeof(_result) == TYPE_DICTIONARY and _result.has("choice"):
 		last_choice_id = str(_result.get("choice", ""))
+
 		if not last_choice_id.is_empty():
 			GameState.set_stage_choice(1, last_choice_id)
 			GameState.set_plot_choice(last_choice_id)
+
 	_run_next()
 	
 

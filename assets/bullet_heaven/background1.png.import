@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bub5e3m8xwhnd"
-path="res://.godot/imported/background.png-7612af4e3f3fca7dabf1d72a194a5aeb.ctex"
+uid="uid://bueyilapmem5s"
+path="res://.godot/imported/background1.png-f93d7d1c3ce1e589cf1344b9a151a3da.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/bullet_heaven/background.png"
-dest_files=["res://.godot/imported/background.png-7612af4e3f3fca7dabf1d72a194a5aeb.ctex"]
+source_file="res://assets/bullet_heaven/background1.png"
+dest_files=["res://.godot/imported/background1.png-f93d7d1c3ce1e589cf1344b9a151a3da.ctex"]
 
 [params]
 

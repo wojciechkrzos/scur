@@ -36,6 +36,9 @@ const PATTERNS := [
 	{ "method": "_pattern_aimed_triple",   "duration": 5.0, "fire_rate": 0.25 },
 	{ "method": "_pattern_circle_pulse",   "duration": 6.0, "fire_rate": 0.90 },
 	{ "method": "_pattern_homing_ring",    "duration": 6.0, "fire_rate": 1.00 },
+	{ "method": "_pattern_desync_radial",  "duration": 5.0, "fire_rate": 0.12 },
+	{ "method": "_pattern_void_ghost",     "duration": 5.0, "fire_rate": 0.10 },
+	{ "method": "_pattern_void_burst",     "duration": 4.0, "fire_rate": 0.20 },
 ]
 
 var _current_pattern_idx: int = 0
@@ -361,7 +364,92 @@ func _pattern_homing_ring() -> void:
 				0.0
 			)
 
+func _pattern_desync_radial() -> void:
+	var count := 14
+	var offset := randf() * TAU
 
+	for i in count:
+		var angle := offset + TAU * i / count
+
+		# początkowy chaos
+		var speed := randf_range(80.0, 180.0)
+
+		var bullet := _create_bullet(Vector2.from_angle(angle), speed, Color(1.0, 0.4, 0.7))
+
+		# zapisujemy dane do "phase 2"
+		bullet.set_meta("freeze_snap", true)
+		bullet.set_meta("snap_delay", 0.6)
+
+		bullet_spawned.emit(bullet)
+
+
+func _pattern_void_ghost() -> void:
+	var arms := 3
+
+	for arm in arms:
+		var base := _spiral_angle + TAU * arm / arms
+		var ghost := -_spiral_angle * 1.15 + TAU * arm / arms
+
+		_fire(Vector2.from_angle(base), 120.0, Color(0.6, 0.3, 1.0))
+		_fire(Vector2.from_angle(ghost), 105.0, Color(0.3, 0.8, 1.0))
+
+	_spiral_angle += 0.22
+
+
+func _pattern_void_burst() -> void:
+	if player_ref == null:
+		return
+
+	var base_angle := (player_ref.position - position).angle()
+
+	for i in 18:
+		var jitter := randf_range(-0.9, 0.9)
+		var speed := randf_range(160.0, 320.0)
+
+		_fire(
+			Vector2.from_angle(base_angle + jitter),
+			speed,
+			Color(1.0, 0.9, 0.2)
+		)
+
+
+func _pattern_void_focus_shift() -> void:
+	if player_ref == null:
+		return
+
+	var offset := Vector2(
+		randf_range(-120, 120),
+		randf_range(-120, 120)
+	)
+
+	var target := player_ref.position + offset
+	var dir := (target - position).normalized()
+
+	for i in 5:
+		var spread := (i - 2) * 0.12
+		_fire(Vector2.from_angle(dir.angle() + spread), 140.0, Color(0.8, 0.4, 1.0))
+
+
+func _pattern_freeze_trap() -> void:
+	var count := 16
+	# Lekki obrót co każdy tick, żeby pociski nie leciały idealnie w te same miejsca
+	_spiral_angle += 0.2 
+	
+	for i in count:
+		var angle := _spiral_angle + (TAU * i / count)
+		var spawn_dir = Vector2.from_angle(angle)
+		
+		# Wystrzeliwujemy pocisk z prędkością 200, który zacznie zwalniać
+		var bullet = _create_bullet(spawn_dir, 200.0, Color(0.2, 0.8, 1.0)) # kolor np. cyjan
+		
+		# Przekazujemy metadane do naszego nowego systemu w Bullet.gd
+		bullet.set_meta("freeze_and_aim", true)
+		bullet.set_meta("freeze_time", 1.5)  # leci i zwalnia przez 1.5 sekundy
+		bullet.set_meta("aim_delay", 0.5)   # stoi w miejscu przez 0.5 sekundy (pauza)
+		bullet.set_meta("aim_speed", 350.0)  # nagły zryw w stronę gracza z prędkością 350
+		bullet.set_meta("target_ref", player_ref)
+		
+		bullet_spawned.emit(bullet)
 
 
 # ── Spawn pocisku ────────────────────────────────────────────────────────────
@@ -392,8 +480,45 @@ func _fire_delayed_arc(direction: Vector2, start_speed: float, min_speed: float,
 	bullet_spawned.emit(b)
 
 
+# func _create_bullet(direction: Vector2, speed: float, color: Color) -> Node2D:
+# 	var b = BulletScript.new()
+	
+# 	# Kształt: kółko (klasyczny pocisk Touhou)
+# 	var col = CollisionShape2D.new()
+# 	var shape = CircleShape2D.new()
+# 	shape.radius = 5.0
+# 	col.shape = shape
+# 	b.add_child(col)
+	
+# 	# Wizualny sprite (kółko z SVG-like ColorRect)
+# 	var vis = ColorRect.new()
+# 	vis.size = Vector2(10, 10)
+# 	vis.position = Vector2(-5, -5)
+# 	vis.color = color
+# 	b.add_child(vis)
+	
+# 	# Jądro (jasny środek — klasyczny styl Touhou)
+# 	var core = ColorRect.new()
+# 	core.size = Vector2(4, 4)
+# 	core.position = Vector2(-2, -2)
+# 	core.color = Color(1, 1, 1, 0.9)
+# 	b.add_child(core)
+	
+# 	b.position = position
+# 	b.collision_layer = 1   # Pociski wroga = warstwa 1
+# 	b.collision_mask = 2    # Wykrywają gracza = warstwa 2
+	
+# 	# Ustaw prędkość i kierunek przez właściwości
+# 	b.set_meta("direction", direction)
+# 	b.set_meta("speed", speed)
+	
+# 	return b
+
 func _create_bullet(direction: Vector2, speed: float, color: Color) -> Node2D:
 	var b = BulletScript.new()
+	
+	# !!! KLUCZOWE: Przekazanie play_area, żeby pociski nie wisiały w pamięci w nieskończoność
+	b.play_area = play_area
 	
 	# Kształt: kółko (klasyczny pocisk Touhou)
 	var col = CollisionShape2D.new()

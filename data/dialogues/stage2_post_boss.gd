@@ -6,19 +6,22 @@ const marek_base = preload("res://assets/portraits/marek_base.png")
 const boss2_base = preload("res://assets/portraits/boss2_base.png")
 
 func get_lines(choice_id: String = ""):
-	if choice_id == "choice_stage2_save":
-		return _path_save()
-	elif choice_id == "choice_stage2_system":
-		return _path_system()
-	else:
-		return _path_save() # fallback
+	match choice_id:
+		"choice_stage2_a":
+			return _path_a()
+
+		"choice_stage2_b":
+			return _path_b()
+
+		_:
+			return _path_a()
 
 
 # ─────────────────────────────
 # PATH A: SAVE (heroiczny)
 # Szymon odłącza Marka, ryzykując wszystko
 # ─────────────────────────────
-func _path_save() -> Array:
+func _path_a() -> Array:
 	return [
 		{
 			"id": "s2_p_save_1",
@@ -30,7 +33,8 @@ func _path_save() -> Array:
 			"id": "s2_p_save_2",
 			"speaker": "Marek",
 			"text": "Szymon... switch.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_save_3",
@@ -42,7 +46,8 @@ func _path_save() -> Array:
 			"id": "s2_p_save_4",
 			"speaker": "Marek",
 			"text": "Możesz nie zdążyć.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_save_5",
@@ -60,7 +65,8 @@ func _path_save() -> Array:
 			"id": "s2_p_save_7",
 			"speaker": "Marek",
 			"text": "Aaa—",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_save_8",
@@ -84,13 +90,15 @@ func _path_save() -> Array:
 			"id": "s2_p_save_11",
 			"speaker": "Marek",
 			"text": "...nie wiem.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_save_12",
 			"speaker": "Marek",
 			"text": "Naprawdę nie wiem. Myślałem, że to prawda.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_save_13",
@@ -102,7 +110,8 @@ func _path_save() -> Array:
 			"id": "s2_p_save_14",
 			"speaker": "Marek",
 			"text": "Przepraszam.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_save_15",
@@ -148,13 +157,14 @@ func _path_save() -> Array:
 # PATH B: SYSTEM (pragmatyczny / korporacyjny)
 # Szymon nie odłącza Marka — wykorzystuje system
 # ─────────────────────────────
-func _path_system() -> Array:
+func _path_b() -> Array:
 	return [
 		{
 			"id": "s2_p_sys_1",
 			"speaker": "Marek",
 			"text": "Masz dostęp do sieci. Co teraz?",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_sys_2",
@@ -166,7 +176,8 @@ func _path_system() -> Array:
 			"id": "s2_p_sys_3",
 			"speaker": "Marek",
 			"text": "Czuję to. Przez sieć.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_sys_4",
@@ -178,13 +189,15 @@ func _path_system() -> Array:
 			"id": "s2_p_sys_5",
 			"speaker": "Marek",
 			"text": "Tak.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_sys_6",
 			"speaker": "Marek",
 			"text": "Szymon.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": "s2_p_sys_7",

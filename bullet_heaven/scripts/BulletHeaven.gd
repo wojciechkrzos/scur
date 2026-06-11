@@ -90,11 +90,12 @@ func start_fight() -> void:
 	hud.setup(stage_duration, player.max_lives)
 	hud.update_pattern(player.get_pattern_name())
 	backdrop.setup(play_area_rect, world_size_px)
-	if stage_profile == "stage2":
-		backdrop.background_color = Color(0.0, 0.0, 0.0, 1.0)
-		backdrop.background_texture = null
-	else:
-		backdrop.background_color = Color(0.03, 0.05, 0.03, 1.0)
+	# if stage_profile == "stage2":
+	# 	backdrop.background_color = Color(0.0, 0.0, 0.0, 1.0)
+	# 	backdrop.background_texture = null
+	# else:
+	backdrop.background_color = Color(0.03, 0.05, 0.03, 1.0)
+	backdrop.set_stage(stage_profile)
 	backdrop.set_scroll_offset(world_offset)
 	enemy_container.visible = true
 	enemy_container.position = world_offset

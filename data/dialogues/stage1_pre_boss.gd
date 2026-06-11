@@ -87,12 +87,12 @@ func get_lines():
 			"portrait": boss1_base,
 			"choices": [
 				{
-					"id": "choice_fight",
+					"id": "choice_stage1_a",
 					"text": "Chcę wiedzieć co stało się z Markiem.",
 					"jump_to": 13
 				},
 				{
-					"id": "choice_join",
+					"id": "choice_stage1_b",
 					"text": "Ile płacisz?",
 					"jump_to": 21
 				}

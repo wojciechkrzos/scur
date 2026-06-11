@@ -56,6 +56,41 @@ const BOSS_B := {
 	]
 }
 
+# const BOSS_C := {
+# 	"win_condition": 1,
+# 	"hp": 100.0,
+# 	"patterns": [
+# 		{ "method": "_pattern_radial", "duration": 6.0, "fire_rate": 0.12 },
+# 		{ "method": "_pattern_spiral", "duration": 6.0, "fire_rate": 0.08 },
+# 		{ "method": "_pattern_aimed_burst", "duration": 5.0, "fire_rate": 0.4 },
+# 		{ "method": "_pattern_cross_wave", "duration": 5.0, "fire_rate": 0.10 },
+# 	]
+# }
+# const BOSS_C := {
+# 	"win_condition": 1,
+# 	"hp": 130.0,
+# 	"patterns": [
+# 		{ "method": "_pattern_homing_ring",   "duration": 6.0, "fire_rate": 0.9 },
+# 		{ "method": "_pattern_gap_wall",      "duration": 5.0, "fire_rate": 0.12 },
+# 		{ "method": "_pattern_aimed_triple",  "duration": 5.0, "fire_rate": 0.25 },
+# 		{ "method": "_pattern_double_spiral", "duration": 6.0, "fire_rate": 0.05 },
+# 		{ "method": "_pattern_circle_pulse",  "duration": 6.0, "fire_rate": 0.85 },
+# 		{ "method": "_pattern_random_spread", "duration": 4.0, "fire_rate": 0.08 },
+# 	]
+# }
+const BOSS_C := {
+    "win_condition": 1,
+    "hp": 120.0,
+    "patterns": [
+        { "method": "_pattern_freeze_trap",   "duration": 3.0, "fire_rate": 0.7 }, 
+        { "method": "_pattern_homing_ring",    "duration": 4.0, "fire_rate": 1.2 },
+		{ "method": "_pattern_freeze_trap",   "duration": 3.0, "fire_rate": 0.7 }, 
+        { "method": "_pattern_void_burst",     "duration": 4.0, "fire_rate": 1.0 },
+		{ "method": "_pattern_soft_fan",      "duration": 4.0, "fire_rate": 0.85 },
+        { "method": "_pattern_circle_pulse",   "duration": 4.5, "fire_rate": 0.8 },
+    ]
+}
+
 # ── Sygnały do gry bazowej ──────────────────────────────────────────────────
 signal fight_ended(result: String)  # "win" lub "lose"
 

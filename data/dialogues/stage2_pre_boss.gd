@@ -96,7 +96,8 @@ func get_lines():
 			"id": 13,
 			"speaker": "Marek",
 			"text": "Cześć, Szymon.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 14,
@@ -108,7 +109,8 @@ func get_lines():
 			"id": 15,
 			"speaker": "Marek",
 			"text": "Długo cię nie było.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 16,
@@ -120,7 +122,8 @@ func get_lines():
 			"id": 17,
 			"speaker": "Marek",
 			"text": "Nic złego. Jest spokojnie. Ciągle.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 
 		# ─────────────────────────────
@@ -136,13 +139,15 @@ func get_lines():
 			"id": 19,
 			"speaker": "Marek",
 			"text": "Czuję każdy tunel. Każdy węzeł. Jak oddychanie.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 20,
 			"speaker": "Marek",
 			"text": "Jeśli mnie odłączysz... uruchomi się procedura awaryjna.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 21,
@@ -154,7 +159,8 @@ func get_lines():
 			"id": 22,
 			"speaker": "Marek",
 			"text": "Zawalenia. Eksplozje. Zalania. Pół Wrocławia pod ziemią.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 23,
@@ -166,7 +172,8 @@ func get_lines():
 			"id": 24,
 			"speaker": "Marek",
 			"text": "Może. Nie pamiętam już co to kłamstwo.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 
 		# ─────────────────────────────
@@ -228,7 +235,8 @@ func get_lines():
 			"id": 31,
 			"speaker": "Marek",
 			"text": "Szymon... nie musisz.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 32,
@@ -263,7 +271,8 @@ func get_lines():
 			"id": 41,
 			"speaker": "Marek",
 			"text": "Rozumiem. To rozsądne.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 42,
@@ -275,7 +284,8 @@ func get_lines():
 			"id": 43,
 			"speaker": "Marek",
 			"text": "Nie ma za co.",
-			"portrait": marek_base
+			"portrait": marek_base,
+			"effect": "shake"
 		},
 		{
 			"id": 44,

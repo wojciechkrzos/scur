@@ -91,15 +91,82 @@ func get_lines():
 			"portrait": matka_base,
 			"choices": [
 				{
-					"id": "choice_s3_destroy",
+					"id": "choice_stage3_a",
 					"text": "Zniszczę to wszystko.",
 					"jump_to": "s3_destroy_1"
 				},
 				{
-					"id": "choice_s3_take",
+					"id": "choice_stage3_b",
 					"text": "Przejmę to.",
 					"jump_to": "s3_take_1"
 				}
 			]
 		},
+        		{
+			"id": "s3_destroy_1",
+			"speaker": "Matka",
+			"text": "Zniszczyć. Klasyczny odruch.",
+			"portrait": matka_base
+		},
+		{
+			"id": "s3_destroy_2",
+			"speaker": "Matka",
+			"text": "A co potem? Kto wypełni pustkę?",
+			"portrait": matka_base
+		},
+		{
+			"id": "s3_destroy_3",
+			"speaker": "Szymon",
+			"text": "Wrocław sobie poradzi.",
+			"portrait": szymon_base
+		},
+		{
+			"id": "s3_destroy_4",
+			"speaker": "Matka",
+			"text": "Zawsze ktoś wypełniał pustkę.",
+			"portrait": matka_base
+		},
+
+		{
+			"id": "s3_take_1",
+			"speaker": "Matka",
+			"text": "Przejąć. Klasyczny odruch.",
+			"portrait": matka_base
+		},
+		{
+			"id": "s3_take_2",
+			"speaker": "Szymon",
+			"text": "Znam system od środka.",
+			"portrait": szymon_base
+		},
+		{
+			"id": "s3_take_3",
+			"speaker": "Matka",
+			"text": "Każdy tak mówił.",
+			"portrait": matka_base
+		},
+		{
+			"id": "s3_take_4",
+			"speaker": "Matka",
+			"text": "Ale ty jeszcze nie usiadłeś na fotelu.",
+			"portrait": matka_base
+		},
+		{
+			"id": "s3_take_5",
+			"speaker": "Matka",
+			"text": "A chcesz.",
+			"portrait": matka_base
+		},
+		{
+			"id": "s3_take_6",
+			"speaker": "Gosia",
+			"text": "Szymon…",
+			"portrait": gosia_base
+		},
+		{
+			"id": "s3_take_7",
+			"speaker": "Szymon",
+			"text": "Wiem.",
+			"portrait": szymon_base
+		}
 	]

@@ -5,10 +5,21 @@ var scroll_offset: Vector2 = Vector2.ZERO
 var world_size: Vector2 = Vector2.ZERO
 var world_border_color: Color = Color(0.82, 0.89, 0.94, 0.92)
 var world_border_thickness: float = 3.0
-@export var background_texture: Texture2D = preload("res://assets/bullet_heaven/background.png")
+@export var background_texture: Texture2D = preload("res://assets/bullet_heaven/background1.png")
 @export var background_color: Color = Color(0.03, 0.05, 0.03, 1.0)
 @export var show_debug_grid: bool = false
 @export var show_world_border: bool = true
+
+const STAGE_BACKGROUNDS = {
+	"stage1": preload("res://assets/bullet_heaven/background1.png"),
+	"stage2": preload("res://assets/bullet_heaven/background2.png"),
+	"stage3": preload("res://assets/bullet_heaven/background3.png"),
+}
+
+func set_stage(stage_id: String) -> void:
+	var tex = STAGE_BACKGROUNDS.get(stage_id, background_texture)
+	background_texture = tex
+	queue_redraw()
 
 func setup(view_rect: Rect2, world_size_px: Vector2 = Vector2.ZERO) -> void:
 	visible_rect = view_rect

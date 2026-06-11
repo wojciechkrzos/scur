@@ -19,6 +19,12 @@ var _target_ref: Node2D = null
 var _homing_fixed_set: bool = false
 var _homing_fixed_pos: Vector2 = Vector2()
 var _homing_fixed_direction: Vector2 = Vector2()
+var _freeze_and_aim: bool = false
+var _freeze_time: float = 1.5      # po jakim czasie pocisk się zatrzyma
+var _aim_delay: float = 0.5        # jak długo stoi w miejscu (pauza)
+var _aim_speed: float = 300.0      # z jaką prędkością ma wystrzelić w gracza
+var _state_timer: float = 0.0
+var _fired_at_player: bool = false
 
 func _ready() -> void:
 	# Pobierz parametry ustawione przez Boss._create_bullet()
@@ -42,17 +48,62 @@ func _ready() -> void:
 		_homing_delay = maxf(float(get_meta("homing_delay")), 0.0)
 	if has_meta("target_ref"):
 		_target_ref = get_meta("target_ref") as Node2D
+	if has_meta("freeze_and_aim"):
+		_freeze_and_aim = get_meta("freeze_and_aim")
+	if has_meta("freeze_time"):
+		_freeze_time = get_meta("freeze_time")
+	if has_meta("aim_delay"):
+		_aim_delay = get_meta("aim_delay")
+	if has_meta("aim_speed"):
+		_aim_speed = get_meta("aim_speed")
 
 
+# func _process(delta: float) -> void:
+# 	_elapsed += delta
+# 	_update_speed(delta)
+# 	_update_homing(delta)
+# 	position += direction * speed * delta
+	
+# 	# Usuń pocisk gdy wyjdzie z planszy (z marginesem)
+# 	if play_area != Rect2() and not play_area.grow(40).has_point(position):
+# 		queue_free()
 func _process(delta: float) -> void:
 	_elapsed += delta
-	_update_speed(delta)
-	_update_homing(delta)
+	
+	if _freeze_and_aim:
+		_handle_freeze_and_aim_logic(delta)
+	else:
+		_update_speed(delta)
+		_update_homing(delta)
+		
 	position += direction * speed * delta
 	
-	# Usuń pocisk gdy wyjdzie z planszy (z marginesem)
 	if play_area != Rect2() and not play_area.grow(40).has_point(position):
 		queue_free()
+
+
+# Nowa funkcja sterująca tym konkretnym patternem
+func _handle_freeze_and_aim_logic(delta: float) -> void:
+	# KROK 1: Wystrzelenie i liniowe zwalnianie do zera
+	if _elapsed < _freeze_time:
+		# Płynnie zmniejszamy prędkość do 0 wraz z upływem czasu do freeze_time
+		var initial_speed = get_meta("speed") if has_meta("speed") else 100.0
+		speed = lerp(initial_speed, 0.0, _elapsed / _freeze_time)
+		
+	# KROK 2: Pocisk stoi w miejscu (Pauza)
+	elif _elapsed >= _freeze_time and _elapsed < (_freeze_time + _aim_delay):
+		speed = 0.0
+		
+	# KROK 3: Pyk! Celowanie i jednorazowy zryw w stronę gracza
+	else:
+		if not _fired_at_player:
+			speed = _aim_speed
+			if _target_ref != null and is_instance_valid(_target_ref):
+				direction = (_target_ref.global_position - global_position).normalized()
+			else:
+				# fail-safe, jeśli gracz nie żyje, leć przed siebie
+				direction = direction.normalized()
+			_fired_at_player = true
 
 func _update_speed(delta: float) -> void:
 	if _elapsed < _accelerate_after:
