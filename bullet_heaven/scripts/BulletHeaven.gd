@@ -905,11 +905,11 @@ func _apply_initial_run_state() -> void:
 		player.speed = float(initial_run_state.get("speed", player.speed))
 	if initial_run_state.has("active_weapons"):
 		var active_weapons_raw: Array = initial_run_state.get("active_weapons", [])
-		player.active_weapons.clear()
+		player.weapon_levels.clear() # Czyścimy słownik broni gracza przed załadowaniem stanu
 		for weapon_id in active_weapons_raw:
 			var weapon_value := int(weapon_id)
-			if not player.active_weapons.has(weapon_value):
-				player.active_weapons.append(weapon_value)
+			# Używamy nowej metody, która prawidłowo wpisze broń do słownika gracza
+			player.force_add_weapon_from_state(weapon_value)
 	if initial_run_state.has("spiral_phase"):
 		player.spiral_phase = float(initial_run_state.get("spiral_phase", player.spiral_phase))
 

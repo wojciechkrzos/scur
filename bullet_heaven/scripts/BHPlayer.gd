@@ -48,10 +48,24 @@ var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
 var anim_sprite: Sprite2D
 var speedup_stacks: int = 0
+# Podmień to w BHPlayer.gd
 var active_weapons: Dictionary:
 	get: return weapon_levels
-	set(value): weapon_levels = value
+	set(value):
+		if value is Dictionary:
+			weapon_levels = value
+		elif weapon_levels == null:
+			weapon_levels = {}
 
+# Dodajemy funkcję, którą BulletHeaven.gd (linia 936) wywołuje pod koniec
+#func get_owned_weapon_ids() -> Array:
+	#return weapon_levels.keys()
+
+# Magiczny zamiennik dla kodu w linii 912, który omija problem ze słownikiem
+func force_add_weapon_from_state(weapon_id: int) -> void:
+	if not weapon_levels.has(weapon_id):
+		weapon_levels[weapon_id] = 1
+		
 const INVINCIBILITY_DURATION := 1.2
 
 @onready var shoot_timer = $ShootTimer
