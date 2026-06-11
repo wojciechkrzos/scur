@@ -58,6 +58,8 @@ func play_music(cue_name: String) -> bool:
 	var stream := load(path) as AudioStream
 	if stream == null:
 		return false
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = cue_name == "theme"
 	if music_player.stream == stream and music_player.playing:
 		return true
 	music_player.stream = stream

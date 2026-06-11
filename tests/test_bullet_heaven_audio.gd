@@ -21,7 +21,13 @@ func _run() -> void:
 		_expect(stream != null and stream.get_length() > 0.0, "Invalid sound effect: %s" % path)
 		_expect(audio.play_sfx(cue_name), "Audio manager could not play: %s" % cue_name)
 
-	_expect(not audio.play_music("theme"), "Missing optional music should be ignored")
+	var music_path: String = BHAudio.MUSIC_PATHS["theme"]
+	_expect(ResourceLoader.exists(music_path), "Missing Bullet Heaven theme: %s" % music_path)
+	_expect(audio.play_music("theme"), "Audio manager could not play the Bullet Heaven theme")
+	_expect(audio.music_player.playing, "Bullet Heaven theme should be playing")
+	var music_stream := audio.music_player.stream as AudioStreamOggVorbis
+	_expect(music_stream != null and music_stream.loop, "Bullet Heaven theme should loop")
+	audio.stop_music()
 	audio.stop_all_sfx()
 	await create_timer(1.0).timeout
 	audio.free()
