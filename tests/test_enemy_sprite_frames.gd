@@ -10,8 +10,8 @@ func _init() -> void:
 func _run() -> void:
 	await _test_animation(BHEnemy.EnemyKind.STANDARD, BHEnemy.AnimState.WALK, 8)
 	await _test_animation(BHEnemy.EnemyKind.STANDARD, BHEnemy.AnimState.ATTACK, 8)
-	await _test_animation(BHEnemy.EnemyKind.TANK, BHEnemy.AnimState.WALK, 5)
-	await _test_animation(BHEnemy.EnemyKind.TANK, BHEnemy.AnimState.ATTACK, 11)
+	await _test_animation(BHEnemy.EnemyKind.TANK, BHEnemy.AnimState.WALK, 4)
+	await _test_animation(BHEnemy.EnemyKind.TANK, BHEnemy.AnimState.ATTACK, 8)
 
 	if failures.is_empty():
 		print("Enemy sprite frame tests passed")

@@ -28,7 +28,7 @@ enum AnimState {
 @export_file("*.png", "*.webp") var standard_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_goon.png"
 @export_file("*.png", "*.webp") var tank_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_brute.png"
 @export var standard_frame_size: Vector2i = Vector2i(32, 32)
-@export var tank_frame_size: Vector2i = Vector2i(48, 32)
+@export var tank_frame_size: Vector2i = Vector2i(64, 32)
 @export var standard_visual_scale_multiplier: float = 7.6
 @export var tank_visual_scale_multiplier: float = 10.4
 @export var swarm_visual_scale_multiplier: float = 7.2
@@ -39,8 +39,8 @@ enum AnimState {
 @export var tank_attack_row: int = 1
 @export var standard_walk_frame_count: int = 8
 @export var standard_attack_frame_count: int = 8
-@export var tank_walk_frame_count: int = 5
-@export var tank_attack_frame_count: int = 11
+@export var tank_walk_frame_count: int = 4
+@export var tank_attack_frame_count: int = 8
 @export var standard_walk_fps: float = 10.0
 @export var standard_attack_fps: float = 14.0
 @export var tank_walk_fps: float = 8.0
