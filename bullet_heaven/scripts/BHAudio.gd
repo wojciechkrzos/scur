@@ -37,6 +37,7 @@ func _ready() -> void:
 	music_player = AudioStreamPlayer.new()
 	music_player.name = "MusicPlayer"
 	music_player.bus = &"Music"
+	music_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(music_player)
 
 func play_weapon(weapon_id: int) -> void:
@@ -58,6 +59,8 @@ func play_music(cue_name: String) -> bool:
 	var stream := load(path) as AudioStream
 	if stream == null:
 		return false
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = cue_name == "theme"
 	if music_player.stream == stream and music_player.playing:
 		return true
 	music_player.stream = stream

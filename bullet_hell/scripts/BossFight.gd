@@ -5,6 +5,8 @@
 
 extends Node2D
 
+const CombatAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
+
 # ── Konfiguracja wywołania ──────────────────────────────────────────────────
 enum WinCondition { SURVIVE, KILL }
 
@@ -62,6 +64,7 @@ var score: int = 0
 var time_remaining: float = 0.0
 var fight_active: bool = false
 var play_area_rect: Rect2 = Rect2(20, 20, PLAY_AREA_SIZE.x, PLAY_AREA_SIZE.y)
+var audio_controller
 
 @onready var player = $Player
 @onready var boss = $Boss
@@ -82,6 +85,8 @@ func start_fight(config: Dictionary) -> void:
 	time_limit    = config.get("time", 30.0)
 	time_remaining = time_limit
 	fight_active  = true
+	if audio_controller != null:
+		audio_controller.play_music("theme")
 	var viewport_rect := get_viewport_rect()
 	var play_top_left := (viewport_rect.size - PLAY_AREA_SIZE) * 0.5
 	play_area_rect = Rect2(play_top_left, PLAY_AREA_SIZE)
@@ -94,6 +99,9 @@ func start_fight(config: Dictionary) -> void:
 
 
 func _ready() -> void:
+	audio_controller = CombatAudioScript.new()
+	audio_controller.name = "BulletHellAudio"
+	add_child(audio_controller)
 	boss.boss_died.connect(_on_boss_died)
 	boss.bullet_spawned.connect(_on_boss_bullet_spawned)
 	player.player_died.connect(_on_player_died)
