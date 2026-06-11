@@ -371,19 +371,52 @@ func _end_fight(result: String) -> void:
 # ── Rysowanie obszaru gry ───────────────────────────────────────────────────
 
 func _draw_play_area() -> void:
+	# 1. Głębokie, ciemne tło samego pola walki
 	var border = ColorRect.new()
-	border.color = Color(0.04, 0.04, 0.08, 1.0)
+	border.color = Color(0.03, 0.03, 0.06, 1.0)
 	border.size = play_area_rect.size
 	border.position = play_area_rect.position
 	border.set_meta("play_area_visual", true)
 	add_child(border)
-	move_child(border, 0)  # Na spód hierarchii
+	move_child(border, 0)
 	
-	# Obramowanie (jasna ramka)
-	var frame = ColorRect.new()
-	frame.color = Color(0.3, 0.3, 0.5, 1.0)
-	frame.size = play_area_rect.size + Vector2(4, 4)
-	frame.position = play_area_rect.position - Vector2(2, 2)
+	# 2. Ramka z neonową poświatą (Glow) wokół pola gry
+	var frame_style = StyleBoxFlat.new()
+	frame_style.bg_color = Color.TRANSPARENT
+	frame_style.border_width_left = 3
+	frame_style.border_width_top = 3
+	frame_style.border_width_right = 3
+	frame_style.border_width_bottom = 3
+	frame_style.border_color = Color(0.0, 0.7, 1.0, 0.8) # Elektryczny błękit
+	frame_style.shadow_size = 10
+	frame_style.shadow_color = Color(0.0, 0.4, 0.9, 0.3)
+	
+	var frame = Panel.new()
+	frame.add_theme_stylebox_override("panel", frame_style)
+	frame.size = play_area_rect.size + Vector2(6, 6)
+	frame.position = play_area_rect.position - Vector2(3, 3)
 	frame.set_meta("play_area_visual", true)
 	add_child(frame)
-	move_child(frame, 0)
+	move_child(frame, 1)
+
+	# 3. GENIALNY MASKER: Tworzymy czarne zasłony na krawędziach ekranu,
+	# dzięki czemu pociski wychodzące za ramkę "znikną" pod nimi dla oka gracza!
+	var window_size = get_viewport().get_visible_rect().size
+	
+	# Kotwice dla 4 zasłon (lewa, prawa, górna, dolna)
+	var masks = [
+		Rect2(0, 0, play_area_rect.position.x, window_size.y), # Lewa
+		Rect2(play_area_rect.end.x, 0, window_size.x - play_area_rect.end.x, window_size.y), # Prawa
+		Rect2(play_area_rect.position.x, 0, play_area_rect.size.x, play_area_rect.position.y), # Górna
+		Rect2(play_area_rect.position.x, play_area_rect.end.y, play_area_rect.size.x, window_size.y - play_area_rect.end.y) # Dolna
+	]
+	
+	for m_rect in masks:
+		var mask = ColorRect.new()
+		mask.color = Color(0.08, 0.08, 0.1, 1.0) # Kolor tła aplikacji (poza grą)
+		mask.size = m_rect.size
+		mask.position = m_rect.position
+		mask.set_meta("play_area_visual", true)
+		add_child(mask)
+		# Wrzucamy maski tuż pod HUD, ale nad pociski (wybierz odpowiedni indeks w zależności od projektu)
+		move_child(mask, get_child_count() - 2)

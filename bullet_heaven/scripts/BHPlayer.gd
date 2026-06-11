@@ -48,6 +48,9 @@ var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
 var anim_sprite: Sprite2D
 var speedup_stacks: int = 0
+var active_weapons: Dictionary:
+	get: return weapon_levels
+	set(value): weapon_levels = value
 
 const INVINCIBILITY_DURATION := 1.2
 
