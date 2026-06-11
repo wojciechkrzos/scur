@@ -4,12 +4,12 @@ extends Node2D
 
 const StartMenuScene = preload("res://ui/StartMenu.tscn")
 const UI_FONT_PATH = "res://assets/fonts/PixelifySans-VariableFont_wght.ttf"
-
 const CampaignFlow = preload("res://CampaignFlow.gd")
+const MAIN_MENU_MUSIC_PATH = "res://assets/audio/music/main_menu_theme.ogg"
 var campaign_runner: Node = null
-
 var start_menu: CanvasLayer = null
 var ui_theme: Theme = null
+var menu_music_player: AudioStreamPlayer = null
 
 @onready var pause_menu = $PauseMenu
 @onready var dialogue_box = $DialogueBox
@@ -92,6 +92,9 @@ func return_to_menu():
 		apply_ui_to_menu()
 		start_menu.start_pressed.connect(_on_start_pressed)
 
+	if menu_music_player != null and not menu_music_player.playing:
+		menu_music_player.play()
+
 
 # ─────────────────────────────
 # PAUSE
@@ -122,10 +125,9 @@ func _unhandled_input(event):
 		return
 
 	if event.is_action_pressed("ui_cancel"):
-		if get_tree().paused:
-			_close_pause()
-		else:
+		if not get_tree().paused:
 			_open_pause()
+			get_viewport().set_input_as_handled()
 
 
 # ─────────────────────────────
@@ -277,16 +279,35 @@ func _start_debug_flow() -> void:
 
 
 func _on_start_pressed() -> void:
+	if menu_music_player != null:
+		menu_music_player.stop()
 	if is_instance_valid(start_menu):
 		start_menu.queue_free()
 		start_menu = null
 
 	_start_debug_flow()
 
-
 # ─────────────────────────────
 # UI + READY
 # ─────────────────────────────
+
+func _setup_menu_music() -> void:
+	if not ResourceLoader.exists(MAIN_MENU_MUSIC_PATH):
+		return
+
+	var stream := load(MAIN_MENU_MUSIC_PATH) as AudioStream
+	if stream == null:
+		return
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+
+	menu_music_player = AudioStreamPlayer.new()
+	menu_music_player.name = "MenuMusicPlayer"
+	menu_music_player.bus = &"Music"
+	menu_music_player.stream = stream
+	add_child(menu_music_player)
+	menu_music_player.play()
+
 func _load_ui_font() -> FontFile:
 	var font_resource := load(UI_FONT_PATH)
 	if font_resource is FontFile:
@@ -326,16 +347,7 @@ func _ready() -> void:
 	_apply_ui_theme_to_controls(ui_font)
 
 	print("MAIN READY")
-	
-	print(GameState)
-	print(GameState.get_script())
-	print(GameState.get_script().resource_path)
-	print("HAS VAR:", "stage1_choice" in GameState)
-	print("SCRIPT INSTANCE:", GameState.get_script() != null)
-	print("SCRIPT TYPE:", typeof(GameState))
-	print("GAMESTATE READY LOADED")
-	print(self.get_script().get_script_method_list())
-	
+	_setup_menu_music()
 	start_menu = StartMenuScene.instantiate()
 	add_child(start_menu)
 

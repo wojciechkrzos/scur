@@ -6,11 +6,11 @@ signal swarm_spawned
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
+const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
 const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
-const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
@@ -53,7 +53,7 @@ var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
 var stage_profile: String = "stage1"
 var initial_run_state: Dictionary = {}
-var _placeholder_square_texture: Texture2D = null
+var placeholder_square_texture: Texture2D = null
 var level_up_dimmer: ColorRect
 var swarm_warning_indicator
 var audio_controller
@@ -74,9 +74,9 @@ var audio_controller
 @onready var choice_button_1 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton1
 @onready var choice_button_2 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton2
 @onready var choice_button_3 = $LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow/ChoiceButton3
-@onready var level_up_tokens_label: Label = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/TokenLabel
-@onready var reroll_button: Button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/RerollButton
-@onready var skip_button: Button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/SkipButton
+@onready var level_up_tokens_label = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/TokenLabel
+@onready var reroll_button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/RerollButton
+@onready var skip_button = $LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow/SkipButton
 
 func get_stage_type() -> String:
 	return "heaven"
@@ -110,12 +110,8 @@ func start_fight() -> void:
 	hud.update_pattern(player.get_pattern_name())
 	hud.update_weapon_inventory(player.get_weapon_inventory())
 	backdrop.setup(play_area_rect, world_size_px)
-	# if stage_profile == "stage2":
-	# 	backdrop.background_color = Color(0.0, 0.0, 0.0, 1.0)
-	# 	backdrop.background_texture = null
-	# else:
-	backdrop.background_color = Color(0.03, 0.05, 0.03, 1.0)
-	backdrop.set_stage(stage_profile)
+	if backdrop.has_method("set_stage"):
+		backdrop.set_stage(stage_profile)
 	backdrop.set_scroll_offset(world_offset)
 	enemy_container.visible = true
 	enemy_container.position = world_offset
@@ -152,6 +148,8 @@ func _ready() -> void:
 	choice_button_1.pressed.connect(_on_choice_button_1_pressed)
 	choice_button_2.pressed.connect(_on_choice_button_2_pressed)
 	choice_button_3.pressed.connect(_on_choice_button_3_pressed)
+	reroll_button.pressed.connect(_on_reroll_button_pressed)
+	skip_button.pressed.connect(_on_skip_button_pressed)
 	level_up_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	level_up_panel.visible = false
@@ -349,6 +347,17 @@ func _on_player_area_entered(area: Area2D) -> void:
 		if area.has_method("get_xp_amount"):
 			player.add_experience(area.get_xp_amount())
 		area.queue_free()
+		return
+
+	if area.is_in_group("bh_token_pickup"):
+		if area.has_method("get_token_type"):
+			var token_type: int = int(area.get_token_type())
+			if token_type == BHTokenPickupScript.TokenType.SKIP:
+				player.add_skip_tokens(1)
+			else:
+				player.add_reroll_tokens(1)
+		_update_token_ui()
+		area.queue_free()
 
 func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 	if not fight_active:
@@ -368,6 +377,7 @@ func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 func _on_enemy_died(enemy: Area2D) -> void:
 	kills += 1
 	_spawn_xp_pellet(enemy.global_position, enemy.xp_value)
+	_try_spawn_levelup_token(enemy.global_position)
 
 func _on_player_died() -> void:
 	_end_fight("lose")
@@ -401,9 +411,9 @@ func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
 		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 
-	level_up_title.text = "AWANS"
-	level_up_subtitle.text = "Poziom %02d - wybierz 1 z 3 ulepszeń" % current_level
-	level_up_hint.text = "Gra zatrzymana do wyboru ulepszenia"
+	level_up_title.text = "Wybór Ulepszenia"
+	level_up_subtitle.text = "Poziom %02d  •  wybierz 1 z 3 kart" % current_level
+	level_up_hint.text = "Rozgrywka zatrzymana do momentu wyboru"
 
 	var buttons := [choice_button_1, choice_button_2, choice_button_3]
 	for index in buttons.size():
@@ -416,11 +426,10 @@ func _open_level_up_ui(current_level: int) -> void:
 			button.set_meta("powerup_id", powerup_id)
 		else:
 			button.visible = false
+	_update_token_ui()
 
 	level_up_panel.visible = true
 	get_tree().paused = true
-	if audio_controller != null:
-		audio_controller.play_music("level_up")
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
@@ -436,19 +445,17 @@ func _apply_powerup_from_button(button: Button) -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
-	if audio_controller != null:
-		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
 
 func _setup_level_up_ui_styles() -> void:
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.03, 0.04, 0.06, 0.0)
+	panel_style.bg_color = Color(0.035, 0.065, 0.12, 0.97)
 	panel_style.border_width_left = 3
 	panel_style.border_width_top = 3
 	panel_style.border_width_right = 3
 	panel_style.border_width_bottom = 3
-	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.18)
+	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.92)
 	panel_style.corner_radius_top_left = 14
 	panel_style.corner_radius_top_right = 14
 	panel_style.corner_radius_bottom_left = 14
@@ -661,8 +668,6 @@ func _on_skip_button_pressed() -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
-	if audio_controller != null:
-		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
 
@@ -862,9 +867,6 @@ func _spawn_stage_obstacles() -> void:
 
 func _spawn_stage2_placeholder_obstacles() -> void:
 	var square_texture := _get_placeholder_square_texture()
-	if square_texture == null:
-		return
-
 	var world_center := play_area_rect.get_center()
 	var offsets: Array[Vector2] = [
 		Vector2(0.0, -180.0),
@@ -874,47 +876,43 @@ func _spawn_stage2_placeholder_obstacles() -> void:
 		Vector2(120.0, 220.0),
 	]
 	for offset in offsets:
-		var square := BHObstacleScript.new()
+		var square = BHObstacleScript.new()
 		square.setup(square_texture, 18.0, 3.0)
 		square.position = world_center + offset
 		obstacle_container.add_child(square)
 
 func _get_placeholder_square_texture() -> Texture2D:
-	if _placeholder_square_texture != null:
-		return _placeholder_square_texture
-
+	if placeholder_square_texture != null:
+		return placeholder_square_texture
 	var image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	image.fill(Color(1.0, 1.0, 1.0, 1.0))
-	_placeholder_square_texture = ImageTexture.create_from_image(image)
-	return _placeholder_square_texture
+	image.fill(Color.WHITE)
+	placeholder_square_texture = ImageTexture.create_from_image(image)
+	return placeholder_square_texture
 
 func _apply_initial_run_state() -> void:
 	if initial_run_state.is_empty():
 		return
 
-	if initial_run_state.has("max_lives"):
-		player.max_lives = maxi(int(initial_run_state.get("max_lives", player.max_lives)), 1)
-		player.lives = clampi(int(initial_run_state.get("lives", player.max_lives)), 1, player.max_lives)
-	if initial_run_state.has("level"):
-		player.level = maxi(int(initial_run_state.get("level", player.level)), 1)
-	if initial_run_state.has("experience_points"):
-		player.experience_points = maxi(int(initial_run_state.get("experience_points", player.experience_points)), 0)
-	if initial_run_state.has("xp_to_next_level"):
-		player.xp_to_next_level = maxi(int(initial_run_state.get("xp_to_next_level", player.xp_to_next_level)), 1)
-	if initial_run_state.has("speed"):
-		player.speed = float(initial_run_state.get("speed", player.speed))
-	if initial_run_state.has("active_weapons"):
-		var active_weapons_raw: Array = initial_run_state.get("active_weapons", [])
-		player.weapon_levels.clear() # Czyścimy słownik broni gracza przed załadowaniem stanu
-		for weapon_id in active_weapons_raw:
-			var weapon_value := int(weapon_id)
-			# Używamy nowej metody, która prawidłowo wpisze broń do słownika gracza
-			player.force_add_weapon_from_state(weapon_value)
-	if initial_run_state.has("spiral_phase"):
-		player.spiral_phase = float(initial_run_state.get("spiral_phase", player.spiral_phase))
+	player.max_lives = maxi(int(initial_run_state.get("max_lives", player.max_lives)), 1)
+	player.lives = clampi(int(initial_run_state.get("lives", player.max_lives)), 1, player.max_lives)
+	player.level = maxi(int(initial_run_state.get("level", player.level)), 1)
+	player.experience_points = maxi(int(initial_run_state.get("experience_points", player.experience_points)), 0)
+	player.xp_to_next_level = maxi(int(initial_run_state.get("xp_to_next_level", player.xp_to_next_level)), 1)
+	player.speed = float(initial_run_state.get("speed", player.speed))
+	player.spiral_phase = float(initial_run_state.get("spiral_phase", player.spiral_phase))
+	player.speedup_stacks = maxi(int(initial_run_state.get("speedup_stacks", player.speedup_stacks)), 0)
+	player.reroll_tokens = maxi(int(initial_run_state.get("reroll_tokens", player.reroll_tokens)), 0)
+	player.skip_tokens = maxi(int(initial_run_state.get("skip_tokens", player.skip_tokens)), 0)
+
+	if initial_run_state.has("weapon_levels"):
+		player.restore_weapon_inventory(initial_run_state.get("weapon_levels", {}))
+	elif initial_run_state.has("active_weapons"):
+		var legacy_inventory: Dictionary = {}
+		for weapon_id in initial_run_state.get("active_weapons", []):
+			legacy_inventory[int(weapon_id)] = 1
+		player.restore_weapon_inventory(legacy_inventory)
 
 	player._update_experience_ui()
-	player._update_walk_animation(0.0)
 
 func get_run_state() -> Dictionary:
 	return {
@@ -924,8 +922,11 @@ func get_run_state() -> Dictionary:
 		"level": player.level,
 		"xp_to_next_level": player.xp_to_next_level,
 		"speed": player.speed,
-		"active_weapons": player.get_owned_weapon_ids(),
+		"weapon_levels": player.get_weapon_inventory(),
 		"spiral_phase": player.spiral_phase,
+		"speedup_stacks": player.speedup_stacks,
+		"reroll_tokens": player.reroll_tokens,
+		"skip_tokens": player.skip_tokens,
 	}
 
 func _load_texture(path: String) -> Texture2D:

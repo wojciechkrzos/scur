@@ -1,9 +1,9 @@
 extends Resource
 
-const BOSS3_BASE = preload("res://assets/portraits/BOSS3_BASE.png")
-const SZYMON_BASE = preload("res://assets/portraits/SZYMON_BASE.png")
-const GOSIA_BASE = preload("res://assets/portraits/GOSIA_BASE.png")
-const MAREK_BASE = preload("res://assets/portraits/MAREK_BASE.png")
+const BOSS3_BASE = preload("res://assets/portraits/boss3_base.png")
+const SZYMON_BASE = preload("res://assets/portraits/szymon_base.png")
+const GOSIA_BASE = preload("res://assets/portraits/gosia_base.png")
+const MAREK_BASE = preload("res://assets/portraits/marek_base.png")
 
 func get_lines(ending_id: String = ""):
 	match ending_id:

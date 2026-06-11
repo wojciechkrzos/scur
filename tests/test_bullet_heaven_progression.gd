@@ -9,6 +9,7 @@ func _init() -> void:
 	_test_level_stats()
 	_test_weapon_acquisition_and_cap()
 	_test_choice_pool_excludes_maxed_weapon()
+	_test_weapon_inventory_restore()
 	if failures.is_empty():
 		print("Bullet Heaven progression tests passed")
 		quit(0)
@@ -40,6 +41,16 @@ func _test_choice_pool_excludes_maxed_weapon() -> void:
 	for _index in 20:
 		var choices: Array[int] = BHPowerups.get_random_choices(8, inventory)
 		_expect(not choices.has(BHPowerups.PowerupId.WEAPON_1), "Maxed weapon should not return to choice pool")
+
+func _test_weapon_inventory_restore() -> void:
+	var player = BHPlayer.new()
+	player.restore_weapon_inventory({
+		BHPowerups.WeaponId.AOE_PULSE: 4,
+		BHPowerups.WeaponId.MOLOTOV_BOMB: 3,
+	})
+	_expect(player.get_weapon_level(BHPowerups.WeaponId.AOE_PULSE) == 4, "Run state should preserve pulse level")
+	_expect(player.get_weapon_level(BHPowerups.WeaponId.MOLOTOV_BOMB) == 3, "Run state should preserve Molotov level")
+	player.free()
 
 func _expect(condition: bool, message: String) -> void:
 	if not condition:

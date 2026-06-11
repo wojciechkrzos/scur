@@ -9,9 +9,9 @@ signal weapon_fired(weapon_id: int)
 
 const BHShotScript = preload("res://bullet_heaven/scripts/BHShot.gd")
 const BHAoEPulseScript = preload("res://bullet_heaven/scripts/BHAoEPulse.gd")
-const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHHomingMissileScript = preload("res://bullet_heaven/scripts/BHHomingMissile.gd")
 const BHMolotovProjectileScript = preload("res://bullet_heaven/scripts/BHMolotovProjectile.gd")
+const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 
 const BASE_SPEED := 230.0
 const BASE_MAX_LIVES := 3
@@ -43,29 +43,14 @@ var play_area: Rect2
 var bullet_container: Node2D
 var weapon_levels: Dictionary[int, int] = {}
 var spiral_phase: float = 0.0
+var speedup_stacks: int = 0
+var reroll_tokens: int = 1
+var skip_tokens: int = 1
 var anchor_position: Vector2 = Vector2.ZERO
 var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
 var anim_sprite: Sprite2D
-var speedup_stacks: int = 0
-# Podmień to w BHPlayer.gd
-var active_weapons: Dictionary:
-	get: return weapon_levels
-	set(value):
-		if value is Dictionary:
-			weapon_levels = value
-		elif weapon_levels == null:
-			weapon_levels = {}
 
-# Dodajemy funkcję, którą BulletHeaven.gd (linia 936) wywołuje pod koniec
-#func get_owned_weapon_ids() -> Array:
-	#return weapon_levels.keys()
-
-# Magiczny zamiennik dla kodu w linii 912, który omija problem ze słownikiem
-func force_add_weapon_from_state(weapon_id: int) -> void:
-	if not weapon_levels.has(weapon_id):
-		weapon_levels[weapon_id] = 1
-		
 const INVINCIBILITY_DURATION := 1.2
 
 @onready var shoot_timer = $ShootTimer
@@ -91,6 +76,9 @@ func setup(area: Rect2, bullet_cont: Node2D) -> void:
 	position = anchor_position
 	weapon_levels = {BHPowerups.WeaponId.AOE_PULSE: 1}
 	spiral_phase = 0.0
+	speedup_stacks = 0
+	reroll_tokens = 1
+	skip_tokens = 1
 	animation_elapsed = 0.0
 	facing_row = ANIM_ROW_FRONT
 	shoot_timer.wait_time = BASE_SHOOT_INTERVAL
@@ -133,6 +121,12 @@ func _fire_weapon(weapon_id: int) -> void:
 			_fire_vertical_jet(weapon_data)
 		"spiral_stream":
 			_fire_spiral_stream(weapon_data)
+		"homing_missile":
+			_fire_homing_missile(weapon_data)
+		"molotov_bomb":
+			_fire_molotov_bomb(weapon_data)
+		"fan_burst":
+			_fire_fan_burst(weapon_data)
 		_:
 			pass
 
@@ -161,6 +155,7 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 	var shot_count := int(weapon_data.get("shot_count", 4))
 	var angle_step: float = TAU / float(maxi(shot_count, 1))
 	var phase_step := float(weapon_data.get("phase_step", 0.35))
+	phase_step *= _get_spiral_combo_multiplier()
 	for i in shot_count:
 		var angle := spiral_phase + float(i) * angle_step
 		_spawn_bullet(
@@ -288,6 +283,44 @@ func get_weapon_level(weapon_id: int) -> int:
 func get_weapon_inventory() -> Dictionary:
 	return weapon_levels.duplicate(true)
 
+func restore_weapon_inventory(inventory: Dictionary) -> void:
+	weapon_levels.clear()
+	for raw_weapon_id in inventory.keys():
+		var weapon_id := int(raw_weapon_id)
+		var weapon_level := clampi(int(inventory[raw_weapon_id]), 1, BHPowerups.MAX_WEAPON_LEVEL)
+		weapon_levels[weapon_id] = weapon_level
+	if weapon_levels.is_empty():
+		weapon_levels[BHPowerups.WeaponId.AOE_PULSE] = 1
+	_emit_weapon_inventory_changed()
+
+func get_reroll_tokens() -> int:
+	return reroll_tokens
+
+func get_skip_tokens() -> int:
+	return skip_tokens
+
+func add_reroll_tokens(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	reroll_tokens += amount
+
+func add_skip_tokens(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	skip_tokens += amount
+
+func consume_reroll_token() -> bool:
+	if reroll_tokens <= 0:
+		return false
+	reroll_tokens -= 1
+	return true
+
+func consume_skip_token() -> bool:
+	if skip_tokens <= 0:
+		return false
+	skip_tokens -= 1
+	return true
+
 func _activate_weapon(weapon_id: int) -> void:
 	if weapon_id == -1:
 		return
@@ -307,6 +340,8 @@ func get_pattern_name() -> String:
 	var names: Array[String] = []
 	for weapon_id in get_owned_weapon_ids():
 		names.append(BHPowerups.get_weapon_name(weapon_id))
+	if _has_spiral_speed_combo():
+		names.append("COMBO: Turbo Spirala")
 	return ", ".join(names)
 
 func _has_spiral_speed_combo() -> bool:
