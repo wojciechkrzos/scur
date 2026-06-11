@@ -1,11 +1,15 @@
 extends Node2D
 
 signal fight_ended(result: String)
+signal swarm_warning_started
+signal swarm_spawned
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
+const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
+const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
 
 @export var stage_duration: float = 35.0
 @export var base_spawn_interval: float = 0.6
@@ -29,6 +33,8 @@ const TANK_SPAWN_CHANCE := 0.2
 const SWARM_EVENT_INTERVAL := 12.0
 const SWARM_EVENT_ENEMY_COUNT := 9
 const SWARM_EDGE_MARGIN := 18.0
+const SWARM_WARNING_DURATION := 1.25
+const TOKEN_DROP_CHANCE := 0.005
 
 var fight_active: bool = false
 var time_remaining: float = 0.0
@@ -40,11 +46,16 @@ var world_offset: Vector2 = Vector2.ZERO
 var world_scroll_limits: Vector2 = Vector2.ZERO
 var player_collision_radius: float = 7.0
 var swarm_event_elapsed: float = 0.0
+var swarm_warning_remaining: float = 0.0
+var pending_swarm_side: int = -1
 var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
 var stage_profile: String = "stage1"
 var initial_run_state: Dictionary = {}
 var _placeholder_square_texture: Texture2D = null
+var level_up_dimmer: ColorRect
+var swarm_warning_indicator
+var audio_controller
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -79,6 +90,10 @@ func start_fight() -> void:
 	wave_level = 1
 	current_spawn_interval = base_spawn_interval
 	swarm_event_elapsed = 0.0
+	swarm_warning_remaining = 0.0
+	pending_swarm_side = -1
+	if swarm_warning_indicator != null:
+		swarm_warning_indicator.hide_warning()
 	world_offset = _clamp_world_offset(initial_world_offset_px)
 	if player.has_node("PlayerCollision"):
 		var player_shape_node := player.get_node("PlayerCollision") as CollisionShape2D
@@ -89,6 +104,7 @@ func start_fight() -> void:
 	_apply_initial_run_state()
 	hud.setup(stage_duration, player.max_lives)
 	hud.update_pattern(player.get_pattern_name())
+	hud.update_weapon_inventory(player.get_weapon_inventory())
 	backdrop.setup(play_area_rect, world_size_px)
 	# if stage_profile == "stage2":
 	# 	backdrop.background_color = Color(0.0, 0.0, 0.0, 1.0)
@@ -127,6 +143,7 @@ func _ready() -> void:
 	player.shot_spawned.connect(_on_player_shot_spawned)
 	player.experience_changed.connect(_on_player_experience_changed)
 	player.leveled_up.connect(_on_player_leveled_up)
+	player.weapon_inventory_changed.connect(_on_player_weapon_inventory_changed)
 	player.area_entered.connect(_on_player_area_entered)
 	choice_button_1.pressed.connect(_on_choice_button_1_pressed)
 	choice_button_2.pressed.connect(_on_choice_button_2_pressed)
@@ -134,6 +151,9 @@ func _ready() -> void:
 	level_up_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	level_up_panel.visible = false
+	_setup_level_up_ui_styles()
+	_setup_swarm_warning_indicator()
+	_setup_audio()
 	start_fight()
 
 func _process(delta: float) -> void:
@@ -159,6 +179,7 @@ func _process(delta: float) -> void:
 	hud.update_lives(player.lives)
 	hud.update_kills(kills)
 	hud.update_pattern(player.get_pattern_name())
+	hud.update_wave(wave_level)
 	_collect_nearby_xp_orbs()
 
 func _spawn_enemy() -> void:
@@ -179,24 +200,75 @@ func _spawn_enemy_of_kind(kind: int, spawn_position: Vector2, direction: Vector2
 	enemy_container.add_child(enemy)
 
 func _update_swarm_event(delta: float) -> void:
+	if pending_swarm_side >= 0:
+		swarm_warning_remaining -= delta
+		if swarm_warning_remaining <= 0.0:
+			var side_to_spawn: int = pending_swarm_side
+			pending_swarm_side = -1
+			if swarm_warning_indicator != null:
+				swarm_warning_indicator.hide_warning()
+			_spawn_swarm_event(side_to_spawn)
+		return
+
 	swarm_event_elapsed += delta
 	if swarm_event_elapsed < SWARM_EVENT_INTERVAL:
 		return
 
 	swarm_event_elapsed = 0.0
-	_spawn_swarm_event()
+	pending_swarm_side = randi() % 4
+	swarm_warning_remaining = SWARM_WARNING_DURATION
+	if swarm_warning_indicator != null:
+		swarm_warning_indicator.show_warning(player, _get_swarm_source_direction(pending_swarm_side), SWARM_WARNING_DURATION)
+	swarm_warning_started.emit()
 
-func _spawn_swarm_event() -> void:
+func _spawn_swarm_event(side: int) -> void:
 	if not fight_active:
 		return
 
-	var side: int = randi() % 4
 	var spawn_positions := _build_swarm_spawn_positions(side, SWARM_EVENT_ENEMY_COUNT)
 	for spawn_position in spawn_positions:
 		var direction: Vector2 = (player.global_position - spawn_position).normalized()
 		if direction == Vector2.ZERO:
-			direction = _fallback_swarm_direction(side)
+				direction = _fallback_swarm_direction(side)
 		_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.SWARM, spawn_position, direction)
+	swarm_spawned.emit()
+
+func _get_swarm_source_direction(side: int) -> Vector2:
+	match side:
+		0:
+			return Vector2.LEFT
+		1:
+			return Vector2.RIGHT
+		2:
+			return Vector2.UP
+		_:
+			return Vector2.DOWN
+
+func _setup_swarm_warning_indicator() -> void:
+	if swarm_warning_indicator != null:
+		return
+	swarm_warning_indicator = BHSwarmWarningScript.new()
+	swarm_warning_indicator.name = "SwarmWarningIndicator"
+	add_child(swarm_warning_indicator)
+
+func _setup_audio() -> void:
+	if audio_controller != null:
+		return
+	audio_controller = BHAudioScript.new()
+	audio_controller.name = "BulletHeavenAudio"
+	add_child(audio_controller)
+	player.weapon_fired.connect(audio_controller.play_weapon)
+	swarm_warning_started.connect(_on_swarm_warning_audio)
+	swarm_spawned.connect(_on_swarm_spawn_audio)
+	audio_controller.play_music("theme")
+
+func _on_swarm_warning_audio() -> void:
+	if audio_controller != null:
+		audio_controller.play_sfx("swarm_warning")
+
+func _on_swarm_spawn_audio() -> void:
+	if audio_controller != null:
+		audio_controller.play_sfx("swarm_spawn")
 
 func _build_swarm_spawn_positions(side: int, count: int) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
@@ -247,11 +319,20 @@ func _on_player_shot_spawned(shot: Node2D) -> void:
 	bullet_container.add_child(shot)
 	shot.global_position = shot.position
 	shot.anchor_ref = player
+	if shot.has_signal("explosion_created"):
+		shot.explosion_created.connect(_on_molotov_explosion_created)
+
+func _on_molotov_explosion_created() -> void:
+	if audio_controller != null:
+		audio_controller.play_sfx("weapon_molotov_explosion")
 
 func _on_player_experience_changed(current_xp: int, current_level: int, xp_to_next: int) -> void:
 	hud.update_level(current_level)
 	hud.update_experience(current_xp, xp_to_next)
 	hud.update_pattern(player.get_pattern_name())
+
+func _on_player_weapon_inventory_changed(inventory: Dictionary) -> void:
+	hud.update_weapon_inventory(inventory)
 
 func _on_player_leveled_up(new_level: int) -> void:
 	pending_level_ups += 1
@@ -300,6 +381,8 @@ func _end_fight(result: String) -> void:
 		bullet.queue_free()
 
 	hud.show_result(result)
+	if audio_controller != null:
+		audio_controller.play_music("victory" if result == "win" else "defeat")
 	await get_tree().create_timer(2.0).timeout
 	fight_ended.emit(result)
 
@@ -312,7 +395,7 @@ func _spawn_xp_pellet(spawn_position: Vector2, xp_amount: int) -> void:
 
 func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
-		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
+		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 
 	level_up_title.text = "AWANS"
 	level_up_subtitle.text = "Poziom %02d - wybierz 1 z 3 ulepszeń" % current_level
@@ -325,13 +408,15 @@ func _open_level_up_ui(current_level: int) -> void:
 			var powerup_id := current_powerup_choices[index]
 			button.visible = true
 			button.disabled = false
-			button.text = BHPowerups.get_powerup_name(powerup_id) + "\n" + BHPowerups.get_powerup_description(powerup_id)
+			_apply_choice_button_style(button, powerup_id)
 			button.set_meta("powerup_id", powerup_id)
 		else:
 			button.visible = false
 
 	level_up_panel.visible = true
 	get_tree().paused = true
+	if audio_controller != null:
+		audio_controller.play_music("level_up")
 
 func _hide_level_up_ui() -> void:
 	level_up_panel.visible = false
@@ -347,14 +432,252 @@ func _apply_powerup_from_button(button: Button) -> void:
 	current_powerup_choices.clear()
 	get_tree().paused = false
 	_hide_level_up_ui()
+	if audio_controller != null:
+		audio_controller.play_music("theme")
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
+
+func _setup_level_up_ui_styles() -> void:
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.03, 0.04, 0.06, 0.0)
+	panel_style.border_width_left = 3
+	panel_style.border_width_top = 3
+	panel_style.border_width_right = 3
+	panel_style.border_width_bottom = 3
+	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.18)
+	panel_style.corner_radius_top_left = 14
+	panel_style.corner_radius_top_right = 14
+	panel_style.corner_radius_bottom_left = 14
+	panel_style.corner_radius_bottom_right = 14
+	level_up_panel.add_theme_stylebox_override("panel", panel_style)
+
+	level_up_title.add_theme_font_size_override("font_size", 42)
+	level_up_subtitle.add_theme_font_size_override("font_size", 20)
+	level_up_hint.add_theme_font_size_override("font_size", 18)
+	level_up_hint.modulate = Color(0.86, 0.91, 1.0, 0.92)
+	level_up_tokens_label.add_theme_font_size_override("font_size", 19)
+	level_up_tokens_label.modulate = Color(0.94, 0.95, 1.0, 1.0)
+
+	var utility_style := StyleBoxFlat.new()
+	utility_style.bg_color = Color(0.15, 0.16, 0.21, 1.0)
+	utility_style.border_color = Color(0.72, 0.74, 0.84, 1.0)
+	utility_style.border_width_left = 2
+	utility_style.border_width_top = 2
+	utility_style.border_width_right = 2
+	utility_style.border_width_bottom = 2
+	utility_style.corner_radius_top_left = 8
+	utility_style.corner_radius_top_right = 8
+	utility_style.corner_radius_bottom_left = 8
+	utility_style.corner_radius_bottom_right = 8
+	reroll_button.add_theme_stylebox_override("normal", utility_style)
+	skip_button.add_theme_stylebox_override("normal", utility_style)
+	reroll_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
+	skip_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
+	reroll_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4, 1.0))
+	skip_button.add_theme_color_override("font_color", Color(0.56, 0.82, 1.0, 1.0))
+
+func _format_powerup_card_text(powerup_id: int) -> String:
+	var name := BHPowerups.get_powerup_name(powerup_id)
+	var desc := BHPowerups.get_powerup_description(powerup_id)
+	var data := BHPowerups.get_powerup_data(powerup_id)
+	var kind := String(data.get("kind", ""))
+	var kind_label := "TECH"
+	match kind:
+		"weapon":
+			kind_label = "BROŃ"
+		"speed":
+			kind_label = "MOBILNOŚĆ"
+		"shield":
+			kind_label = "OBRONA"
+	if kind == "weapon":
+		var weapon_id: int = int(data.get("weapon_id", -1))
+		var current_level: int = player.get_weapon_level(weapon_id)
+		var level_text := "NOWA BROŃ" if current_level == 0 else "POZIOM %d → %d" % [current_level, current_level + 1]
+		var upgrade_text := BHPowerups.get_upgrade_summary(weapon_id, current_level)
+		return "%s\n%s  •  %s\n\n%s\n\n%s" % [name.to_upper(), kind_label, level_text, desc, upgrade_text]
+	return "%s\n%s\n\n%s" % [name.to_upper(), kind_label, desc]
+
+func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
+	button.custom_minimum_size = Vector2(250.0, 290.0)
+	button.text = ""
+	button.icon = null
+	button.autowrap_mode = TextServer.AUTOWRAP_OFF
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.expand_icon = false
+	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	button.add_theme_font_size_override("font_size", 18)
+	button.clip_text = false
+	button.focus_mode = Control.FOCUS_ALL
+	_populate_choice_button_content(button, powerup_id)
+
+	var data := BHPowerups.get_powerup_data(powerup_id)
+	var kind := String(data.get("kind", ""))
+	var border_color := Color(0.55, 0.7, 1.0, 1.0)
+	var fill_color := Color(0.09, 0.11, 0.15, 1.0)
+	match kind:
+		"weapon":
+			border_color = Color(0.98, 0.68, 0.28, 1.0)
+			fill_color = Color(0.16, 0.11, 0.09, 1.0)
+		"speed":
+			border_color = Color(0.33, 0.9, 0.62, 1.0)
+			fill_color = Color(0.08, 0.16, 0.14, 1.0)
+		"shield":
+			border_color = Color(0.42, 0.78, 1.0, 1.0)
+			fill_color = Color(0.08, 0.12, 0.17, 1.0)
+
+	var normal_style := StyleBoxFlat.new()
+	normal_style.bg_color = fill_color
+	normal_style.border_color = border_color
+	normal_style.border_width_left = 2
+	normal_style.border_width_top = 2
+	normal_style.border_width_right = 2
+	normal_style.border_width_bottom = 2
+	normal_style.corner_radius_top_left = 10
+	normal_style.corner_radius_top_right = 10
+	normal_style.corner_radius_bottom_left = 10
+	normal_style.corner_radius_bottom_right = 10
+
+	var hover_style := normal_style.duplicate() as StyleBoxFlat
+	hover_style.bg_color = fill_color.lightened(0.12)
+
+	var pressed_style := normal_style.duplicate() as StyleBoxFlat
+	pressed_style.bg_color = fill_color.darkened(0.14)
+
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_color_override("font_color", Color(0.97, 0.98, 1.0, 1.0))
+
+func _populate_choice_button_content(button: Button, powerup_id: int) -> void:
+	var content := button.get_node_or_null("CardContent") as VBoxContainer
+	if content == null:
+		content = VBoxContainer.new()
+		content.name = "CardContent"
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_theme_constant_override("separation", 8)
+		content.add_theme_constant_override("margin_left", 14)
+		content.add_theme_constant_override("margin_top", 14)
+		content.add_theme_constant_override("margin_right", 14)
+		content.add_theme_constant_override("margin_bottom", 14)
+		button.add_child(content)
+
+	var icon := content.get_node_or_null("Icon") as TextureRect
+	if icon == null:
+		icon = TextureRect.new()
+		icon.name = "Icon"
+		icon.custom_minimum_size = Vector2(88.0, 88.0)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(icon)
+
+	var title := content.get_node_or_null("Title") as Label
+	if title == null:
+		title = Label.new()
+		title.name = "Title"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title.add_theme_font_size_override("font_size", 20)
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(title)
+
+	var details := content.get_node_or_null("Details") as Label
+	if details == null:
+		details = Label.new()
+		details.name = "Details"
+		details.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		details.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details.add_theme_font_size_override("font_size", 15)
+		details.modulate = Color(0.92, 0.95, 1.0, 0.96)
+		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		details.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(details)
+
+	icon.texture = BHPowerups.get_powerup_icon(powerup_id)
+	title.text = BHPowerups.get_powerup_name(powerup_id).to_upper()
+	details.text = _format_powerup_card_details(powerup_id)
+
+func _format_powerup_card_details(powerup_id: int) -> String:
+	var desc := BHPowerups.get_powerup_description(powerup_id)
+	var data := BHPowerups.get_powerup_data(powerup_id)
+	var kind := String(data.get("kind", ""))
+	var kind_label := "TECH"
+	match kind:
+		"weapon":
+			kind_label = "BROŃ"
+		"speed":
+			kind_label = "MOBILNOŚĆ"
+		"shield":
+			kind_label = "OBRONA"
+
+	if kind == "weapon":
+		var weapon_id: int = int(data.get("weapon_id", -1))
+		var current_level: int = player.get_weapon_level(weapon_id)
+		var level_text := "NOWA BROŃ" if current_level == 0 else "POZIOM %d → %d" % [current_level, current_level + 1]
+		var upgrade_text := BHPowerups.get_upgrade_summary(weapon_id, current_level)
+		return "%s  •  %s\n\n%s\n\n%s" % [kind_label, level_text, desc, upgrade_text]
+
+	return "%s\n\n%s" % [kind_label, desc]
+
+func _update_token_ui() -> void:
+	if level_up_tokens_label == null:
+		return
+
+	var rerolls: int = player.get_reroll_tokens()
+	var skips: int = player.get_skip_tokens()
+	level_up_tokens_label.text = "Tokeny: Reroll %d  •  Skip %d" % [rerolls, skips]
+	if reroll_button != null:
+		reroll_button.disabled = rerolls <= 0
+	if skip_button != null:
+		skip_button.disabled = skips <= 0
+
+func _on_reroll_button_pressed() -> void:
+	if not level_up_panel.visible:
+		return
+	if not player.consume_reroll_token():
+		_update_token_ui()
+		return
+
+	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
+	_open_level_up_ui(player.level)
+
+func _on_skip_button_pressed() -> void:
+	if not level_up_panel.visible:
+		return
+	if not player.consume_skip_token():
+		_update_token_ui()
+		return
+
+	pending_level_ups = max(pending_level_ups - 1, 0)
+	current_powerup_choices.clear()
+	get_tree().paused = false
+	_hide_level_up_ui()
+	if audio_controller != null:
+		audio_controller.play_music("theme")
+	if pending_level_ups > 0:
+		call_deferred("_resume_level_up_sequence")
+
+func _try_spawn_levelup_token(spawn_position: Vector2) -> void:
+	if randf() > TOKEN_DROP_CHANCE:
+		return
+
+	var token := BHTokenPickupScript.new()
+	token.token_type = BHTokenPickupScript.TokenType.REROLL
+	if randf() < 0.5:
+		token.token_type = BHTokenPickupScript.TokenType.SKIP
+	token.position = pickup_container.to_local(spawn_position)
+	pickup_container.call_deferred("add_child", token)
 
 func _resume_level_up_sequence() -> void:
 	if pending_level_ups <= 0:
 		return
 	get_tree().paused = false
-	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_owned_weapon_ids())
+	current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 	_open_level_up_ui(player.level)
 
 func _on_choice_button_1_pressed() -> void:
