@@ -444,12 +444,12 @@ func _apply_powerup_from_button(button: Button) -> void:
 
 func _setup_level_up_ui_styles() -> void:
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.03, 0.04, 0.06, 0.0)
+	panel_style.bg_color = Color(0.035, 0.065, 0.12, 0.97)
 	panel_style.border_width_left = 3
 	panel_style.border_width_top = 3
 	panel_style.border_width_right = 3
 	panel_style.border_width_bottom = 3
-	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.18)
+	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.92)
 	panel_style.corner_radius_top_left = 14
 	panel_style.corner_radius_top_right = 14
 	panel_style.corner_radius_bottom_left = 14
