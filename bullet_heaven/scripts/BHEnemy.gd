@@ -6,6 +6,8 @@ enum EnemyKind {
 	STANDARD,
 	TANK,
 	SWARM,
+	HUNTER,
+	ELITE,
 }
 
 enum MovementMode {
@@ -63,14 +65,19 @@ var enemy_sprite: Sprite2D
 var current_anim_state: AnimState = AnimState.IDLE
 var enemy_anim_elapsed: float = 0.0
 var enemy_anim_frame: int = 0
+var acceleration_per_second: float = 0.0
+var maximum_speed: float = 0.0
 
-func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Vector2.ZERO, obstacles: Node2D = null) -> void:
+func setup(kind: EnemyKind, player: Node2D, area: Rect2, direction: Vector2 = Vector2.ZERO, obstacles: Node2D = null, speed_scale: float = 1.0, health_scale: float = 1.0) -> void:
 	enemy_kind = kind
 	player_ref = player
 	play_area = area
 	move_direction = direction.normalized() if direction != Vector2.ZERO else Vector2.ZERO
 	obstacle_container = obstacles
 	_apply_kind_stats()
+	speed *= maxf(speed_scale, 0.1)
+	maximum_speed *= maxf(speed_scale, 0.1)
+	hp = maxi(int(ceil(float(hp) * maxf(health_scale, 0.1))), 1)
 
 func _apply_kind_stats() -> void:
 	match enemy_kind:
@@ -90,6 +97,24 @@ func _apply_kind_stats() -> void:
 			body_color = Color(0.95, 0.9, 0.25, 1.0)
 			body_size = Vector2(14, 14)
 			collision_radius = 6.0
+		EnemyKind.HUNTER:
+			speed = 138.0
+			maximum_speed = 245.0
+			acceleration_per_second = 22.0
+			hp = 3
+			xp_value = 3
+			movement_mode = MovementMode.HOMING
+			body_color = Color(0.72, 0.18, 0.95, 1.0)
+			body_size = Vector2(18, 18)
+			collision_radius = 8.5
+		EnemyKind.ELITE:
+			speed = 78.0
+			hp = 14
+			xp_value = 7
+			movement_mode = MovementMode.HOMING
+			body_color = Color(0.82, 0.08, 0.2, 1.0)
+			body_size = Vector2(32, 32)
+			collision_radius = 14.0
 		_:
 			speed = 95.0
 			hp = 1
@@ -132,6 +157,8 @@ func _ready() -> void:
 	add_child(damage_flash_overlay)
 
 func _process(delta: float) -> void:
+	if acceleration_per_second > 0.0:
+		speed = minf(speed + acceleration_per_second * delta, maximum_speed)
 	var previous_position: Vector2 = global_position
 	match movement_mode:
 		MovementMode.HOMING:
@@ -271,20 +298,25 @@ func _create_enemy_sprite(texture: Texture2D) -> Sprite2D:
 	var target_size: Vector2 = body_size * _get_visual_scale_multiplier_for_kind()
 	var scale_ratio: float = minf(target_size.x / float(frame_size.x), target_size.y / float(frame_size.y))
 	sprite.scale = Vector2(scale_ratio, scale_ratio)
+	match enemy_kind:
+		EnemyKind.HUNTER:
+			sprite.modulate = Color(0.82, 0.48, 1.0, 1.0)
+		EnemyKind.ELITE:
+			sprite.modulate = Color(1.0, 0.42, 0.48, 1.0)
 	return sprite
 
 func _get_enemy_frame_size() -> Vector2i:
 	match enemy_kind:
-		EnemyKind.TANK:
+		EnemyKind.TANK, EnemyKind.ELITE:
 			return tank_frame_size
-		EnemyKind.STANDARD:
+		EnemyKind.STANDARD, EnemyKind.HUNTER:
 			return standard_frame_size
 		_:
 			return Vector2i.ZERO
 
 func _get_visual_scale_multiplier_for_kind() -> float:
 	match enemy_kind:
-		EnemyKind.TANK:
+		EnemyKind.TANK, EnemyKind.ELITE:
 			return maxf(tank_visual_scale_multiplier, 0.1)
 		EnemyKind.SWARM:
 			return maxf(swarm_visual_scale_multiplier, 0.1)
@@ -294,9 +326,9 @@ func _get_visual_scale_multiplier_for_kind() -> float:
 func _load_enemy_texture_for_kind() -> Texture2D:
 	var path := ""
 	match enemy_kind:
-		EnemyKind.TANK:
+		EnemyKind.TANK, EnemyKind.ELITE:
 			path = tank_enemy_texture_path
-		EnemyKind.STANDARD:
+		EnemyKind.STANDARD, EnemyKind.HUNTER:
 			path = standard_enemy_texture_path
 		_:
 			return null
@@ -357,11 +389,11 @@ func _apply_animation_frame() -> void:
 
 func _get_animation_row(state: AnimState) -> int:
 	match enemy_kind:
-		EnemyKind.TANK:
+		EnemyKind.TANK, EnemyKind.ELITE:
 			if state == AnimState.ATTACK:
 				return tank_attack_row
 			return tank_walk_row
-		EnemyKind.STANDARD:
+		EnemyKind.STANDARD, EnemyKind.HUNTER:
 			if state == AnimState.ATTACK:
 				return standard_attack_row
 			return standard_walk_row
@@ -370,11 +402,11 @@ func _get_animation_row(state: AnimState) -> int:
 
 func _get_animation_fps(state: AnimState) -> float:
 	match enemy_kind:
-		EnemyKind.TANK:
+		EnemyKind.TANK, EnemyKind.ELITE:
 			if state == AnimState.ATTACK:
 				return tank_attack_fps
 			return tank_walk_fps
-		EnemyKind.STANDARD:
+		EnemyKind.STANDARD, EnemyKind.HUNTER:
 			if state == AnimState.ATTACK:
 				return standard_attack_fps
 			return standard_walk_fps
@@ -387,8 +419,8 @@ func _get_animation_frame_count() -> int:
 
 	var configured_count: int = enemy_sprite.hframes
 	match enemy_kind:
-		EnemyKind.TANK:
+		EnemyKind.TANK, EnemyKind.ELITE:
 			configured_count = tank_attack_frame_count if current_anim_state == AnimState.ATTACK else tank_walk_frame_count
-		EnemyKind.STANDARD:
+		EnemyKind.STANDARD, EnemyKind.HUNTER:
 			configured_count = standard_attack_frame_count if current_anim_state == AnimState.ATTACK else standard_walk_frame_count
 	return clampi(configured_count, 1, maxi(enemy_sprite.hframes, 1))

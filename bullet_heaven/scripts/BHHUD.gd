@@ -17,6 +17,7 @@ const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 @onready var result_label: Label = $ResultLabel
 
 var result_dimmer: ColorRect
+var stage_number: int = 1
 
 func _ready() -> void:
 	_setup_styles()
@@ -28,7 +29,8 @@ func _ready() -> void:
 	add_child(result_dimmer)
 	move_child(result_dimmer, 0)
 
-func setup(duration: float, lives: int) -> void:
+func setup(duration: float, lives: int, stage_profile: String = "stage1") -> void:
+	stage_number = clampi(int(stage_profile.trim_prefix("stage")), 1, 3)
 	update_lives(lives)
 	update_kills(0)
 	update_timer(duration)
@@ -51,7 +53,7 @@ func update_timer(time_left: float) -> void:
 	timer_label.modulate = Color(1.0, 0.38, 0.38) if seconds < 8.0 else Color(0.96, 0.98, 1.0)
 
 func update_wave(wave: int) -> void:
-	wave_label.text = "FALA %02d" % wave
+	wave_label.text = "ETAP %d  •  FALA %02d" % [stage_number, wave]
 
 func update_level(level: int) -> void:
 	level_label.text = "POZIOM  %02d" % level

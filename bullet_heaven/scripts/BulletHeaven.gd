@@ -12,10 +12,10 @@ const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
 const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
 const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
 
-@export var stage_duration: float = 35.0
-@export var base_spawn_interval: float = 0.6
-@export var spawn_interval_floor: float = 0.2
-@export var wave_step_seconds: float = 7.0
+@export var stage_duration: float = 45.0
+@export var base_spawn_interval: float = 0.72
+@export var spawn_interval_floor: float = 0.48
+@export var wave_step_seconds: float = 12.0
 @export var world_scroll_speed: float = 520.0
 @export var world_size_px: Vector2 = Vector2(1920.0, 1080.0)
 @export var border_visibility_padding_px: Vector2 = Vector2(500.0, 500.0)
@@ -30,12 +30,29 @@ const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
 @export var fountain_collision_radius: float = 120.0
 @export var xp_pickup_radius: float = 34.0
 
-const TANK_SPAWN_CHANCE := 0.2
-const SWARM_EVENT_INTERVAL := 12.0
-const SWARM_EVENT_ENEMY_COUNT := 9
 const SWARM_EDGE_MARGIN := 18.0
-const SWARM_WARNING_DURATION := 1.25
 const TOKEN_DROP_CHANCE := 0.005
+
+const STAGE_CONFIGS := {
+	"stage1": {
+		"duration": 45.0, "spawn_interval": 0.72, "spawn_floor": 0.48,
+		"wave_seconds": 12.0, "spawn_decay": 0.035, "tank_chance": 0.20,
+		"enemy_speed": 1.0, "swarm_enabled": false,
+	},
+	"stage2": {
+		"duration": 60.0, "spawn_interval": 0.48, "spawn_floor": 0.24,
+		"wave_seconds": 10.0, "spawn_decay": 0.04, "tank_chance": 0.25,
+		"enemy_speed": 1.15, "swarm_enabled": true, "swarm_interval": 12.0,
+		"swarm_count": 9, "swarm_warning": 1.25,
+	},
+	"stage3": {
+		"duration": 180.0, "spawn_interval": 0.40, "spawn_floor": 0.14,
+		"wave_seconds": 8.0, "spawn_decay": 0.018, "tank_chance": 0.20,
+		"hunter_chance": 0.25, "elite_chance": 0.08, "enemy_speed": 1.25,
+		"swarm_enabled": true, "swarm_interval": 8.0, "swarm_count": 14,
+		"swarm_warning": 0.9,
+	},
+}
 
 var fight_active: bool = false
 var time_remaining: float = 0.0
@@ -57,6 +74,15 @@ var placeholder_square_texture: Texture2D = null
 var level_up_dimmer: ColorRect
 var swarm_warning_indicator
 var audio_controller
+var spawn_interval_decay: float = 0.035
+var tank_spawn_chance: float = 0.2
+var hunter_spawn_chance: float = 0.0
+var elite_spawn_chance: float = 0.0
+var enemy_speed_multiplier: float = 1.0
+var swarm_enabled: bool = false
+var swarm_event_interval: float = 12.0
+var swarm_enemy_count: int = 9
+var swarm_warning_duration: float = 1.25
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -84,6 +110,23 @@ func get_stage_type() -> String:
 func configure_stage(profile: String, run_state: Dictionary = {}) -> void:
 	stage_profile = profile
 	initial_run_state = run_state.duplicate(true)
+	_apply_stage_profile()
+
+func _apply_stage_profile() -> void:
+	var config: Dictionary = STAGE_CONFIGS.get(stage_profile, STAGE_CONFIGS["stage1"])
+	stage_duration = float(config.get("duration", 45.0))
+	base_spawn_interval = float(config.get("spawn_interval", 0.72))
+	spawn_interval_floor = float(config.get("spawn_floor", 0.48))
+	wave_step_seconds = float(config.get("wave_seconds", 12.0))
+	spawn_interval_decay = float(config.get("spawn_decay", 0.035))
+	tank_spawn_chance = float(config.get("tank_chance", 0.2))
+	hunter_spawn_chance = float(config.get("hunter_chance", 0.0))
+	elite_spawn_chance = float(config.get("elite_chance", 0.0))
+	enemy_speed_multiplier = float(config.get("enemy_speed", 1.0))
+	swarm_enabled = bool(config.get("swarm_enabled", false))
+	swarm_event_interval = float(config.get("swarm_interval", 12.0))
+	swarm_enemy_count = int(config.get("swarm_count", 9))
+	swarm_warning_duration = float(config.get("swarm_warning", 1.25))
 
 func start_fight() -> void:
 	play_area_rect = get_viewport_rect()
@@ -106,7 +149,7 @@ func start_fight() -> void:
 
 	player.setup(play_area_rect, bullet_container)
 	_apply_initial_run_state()
-	hud.setup(stage_duration, player.max_lives)
+	hud.setup(stage_duration, player.max_lives, stage_profile)
 	hud.update_pattern(player.get_pattern_name())
 	hud.update_weapon_inventory(player.get_weapon_inventory())
 	backdrop.setup(play_area_rect, world_size_px)
@@ -163,7 +206,8 @@ func _process(delta: float) -> void:
 		return
 
 	_scroll_world(delta)
-	_update_swarm_event(delta)
+	if swarm_enabled:
+		_update_swarm_event(delta)
 
 	time_remaining -= delta
 	if time_remaining <= 0.0:
@@ -174,7 +218,7 @@ func _process(delta: float) -> void:
 	var target_wave = 1 + int((stage_duration - time_remaining) / wave_step_seconds)
 	if target_wave > wave_level:
 		wave_level = target_wave
-		current_spawn_interval = max(spawn_interval_floor, base_spawn_interval - 0.07 * float(wave_level - 1))
+		current_spawn_interval = max(spawn_interval_floor, base_spawn_interval - spawn_interval_decay * float(wave_level - 1))
 		spawn_timer.wait_time = current_spawn_interval
 
 	hud.update_timer(time_remaining)
@@ -188,14 +232,40 @@ func _spawn_enemy() -> void:
 	if not fight_active:
 		return
 
-	var kind := BHEnemyScript.EnemyKind.STANDARD
-	if randf() < TANK_SPAWN_CHANCE:
-		kind = BHEnemyScript.EnemyKind.TANK
-	_spawn_enemy_of_kind(kind, _random_edge_position(play_area_rect))
+	var batch_size := _get_regular_spawn_batch_size()
+	for _index in batch_size:
+		_spawn_enemy_of_kind(_choose_regular_enemy_kind(), _random_edge_position(play_area_rect))
+
+func _get_regular_spawn_batch_size() -> int:
+	if stage_profile != "stage3":
+		return 1
+	if wave_level >= 12:
+		return 3
+	if wave_level >= 5:
+		return 2
+	return 1
+
+func _choose_regular_enemy_kind() -> int:
+	var roll := randf()
+	var scaled_elite_chance := elite_spawn_chance
+	if stage_profile == "stage3":
+		scaled_elite_chance += minf(float(wave_level - 1) * 0.004, 0.08)
+	if roll < scaled_elite_chance:
+		return BHEnemyScript.EnemyKind.ELITE
+	if roll < scaled_elite_chance + hunter_spawn_chance:
+		return BHEnemyScript.EnemyKind.HUNTER
+	if roll < scaled_elite_chance + hunter_spawn_chance + tank_spawn_chance:
+		return BHEnemyScript.EnemyKind.TANK
+	return BHEnemyScript.EnemyKind.STANDARD
 
 func _spawn_enemy_of_kind(kind: int, spawn_position: Vector2, direction: Vector2 = Vector2.ZERO) -> void:
 	var enemy = BHEnemyScript.new()
-	enemy.setup(kind, player, play_area_rect, direction, obstacle_container)
+	var speed_scale := enemy_speed_multiplier
+	var health_scale := 1.0
+	if stage_profile == "stage3":
+		speed_scale *= 1.0 + minf(float(wave_level - 1) * 0.008, 0.18)
+		health_scale += minf(float(wave_level - 1) * 0.035, 0.7)
+	enemy.setup(kind, player, play_area_rect, direction, obstacle_container, speed_scale, health_scale)
 	enemy.global_position = spawn_position
 	enemy.area_entered.connect(_on_enemy_area_entered.bind(enemy))
 	enemy.died.connect(_on_enemy_died.bind(enemy))
@@ -213,26 +283,35 @@ func _update_swarm_event(delta: float) -> void:
 		return
 
 	swarm_event_elapsed += delta
-	if swarm_event_elapsed < SWARM_EVENT_INTERVAL:
+	var current_swarm_interval := swarm_event_interval
+	if stage_profile == "stage3":
+		current_swarm_interval = maxf(5.5, swarm_event_interval - float(wave_level - 1) * 0.12)
+	if swarm_event_elapsed < current_swarm_interval:
 		return
 
 	swarm_event_elapsed = 0.0
 	pending_swarm_side = randi() % 4
-	swarm_warning_remaining = SWARM_WARNING_DURATION
+	swarm_warning_remaining = swarm_warning_duration
 	if swarm_warning_indicator != null:
-		swarm_warning_indicator.show_warning(player, _get_swarm_source_direction(pending_swarm_side), SWARM_WARNING_DURATION)
+		swarm_warning_indicator.show_warning(player, _get_swarm_source_direction(pending_swarm_side), swarm_warning_duration)
 	swarm_warning_started.emit()
 
 func _spawn_swarm_event(side: int) -> void:
 	if not fight_active:
 		return
 
-	var spawn_positions := _build_swarm_spawn_positions(side, SWARM_EVENT_ENEMY_COUNT)
+	var count := swarm_enemy_count
+	if stage_profile == "stage3":
+		count = mini(swarm_enemy_count + int(wave_level / 4), 22)
+	var spawn_positions := _build_swarm_spawn_positions(side, count)
 	for spawn_position in spawn_positions:
 		var direction: Vector2 = (player.global_position - spawn_position).normalized()
 		if direction == Vector2.ZERO:
 				direction = _fallback_swarm_direction(side)
 		_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.SWARM, spawn_position, direction)
+	if stage_profile == "stage3":
+		for _index in 2:
+			_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.HUNTER, _random_edge_position(play_area_rect))
 	swarm_spawned.emit()
 
 func _get_swarm_source_direction(side: int) -> Vector2:
