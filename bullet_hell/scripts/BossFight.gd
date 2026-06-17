@@ -6,6 +6,7 @@
 extends Node2D
 
 const CombatAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
+const HellBackdropScript = preload("res://bullet_hell/scripts/HellBackdrop.gd")
 
 # ── Konfiguracja wywołania ──────────────────────────────────────────────────
 enum WinCondition { SURVIVE, KILL }
@@ -110,6 +111,7 @@ var _objective_intro_text: Label = null
 var _objective_intro_shooting: Label = null
 var _objective_intro_skip: Button = null
 var audio_controller
+var _hit_shake_tween: Tween
 
 @onready var player = $Player
 @onready var boss = $Boss
@@ -156,6 +158,7 @@ func _ready() -> void:
 	boss.boss_died.connect(_on_boss_died)
 	boss.bullet_spawned.connect(_on_boss_bullet_spawned)
 	player.player_died.connect(_on_player_died)
+	player.player_hit.connect(_on_player_hit)
 	player.player_scored.connect(_on_player_scored)
 	player.bullet_spawned.connect(_on_player_bullet_spawned)
 	
@@ -203,6 +206,20 @@ func _on_boss_died() -> void:
 
 func _on_player_died() -> void:
 	_end_fight("lose")
+
+func _on_player_hit(_remaining_lives: int) -> void:
+	hud.play_damage_feedback()
+	_play_hit_shake()
+
+func _play_hit_shake() -> void:
+	if _hit_shake_tween != null and _hit_shake_tween.is_valid():
+		_hit_shake_tween.kill()
+	position = Vector2.ZERO
+	_hit_shake_tween = create_tween()
+	_hit_shake_tween.tween_property(self, "position", Vector2(6.0, -3.0), 0.035)
+	_hit_shake_tween.tween_property(self, "position", Vector2(-5.0, 4.0), 0.045)
+	_hit_shake_tween.tween_property(self, "position", Vector2(3.0, 1.0), 0.04)
+	_hit_shake_tween.tween_property(self, "position", Vector2.ZERO, 0.06)
 
 
 func _on_player_scored(points: int) -> void:
@@ -379,9 +396,16 @@ func _end_fight(result: String) -> void:
 # ── Rysowanie obszaru gry ───────────────────────────────────────────────────
 
 func _draw_play_area() -> void:
+	var starfield = HellBackdropScript.new()
+	starfield.name = "HellBackdrop"
+	starfield.setup(play_area_rect)
+	starfield.set_meta("play_area_visual", true)
+	add_child(starfield)
+	move_child(starfield, 0)
+
 	# 1. Głębokie, ciemne tło samego pola walki
 	var border = ColorRect.new()
-	border.color = Color(0.03, 0.03, 0.06, 1.0)
+	border.color = Color(0.03, 0.03, 0.06, 0.34)
 	border.size = play_area_rect.size
 	border.position = play_area_rect.position
 	border.set_meta("play_area_visual", true)
@@ -406,6 +430,9 @@ func _draw_play_area() -> void:
 	frame.set_meta("play_area_visual", true)
 	add_child(frame)
 	move_child(frame, 1)
+	var frame_tween := frame.create_tween().set_loops()
+	frame_tween.tween_property(frame, "modulate", Color(0.55, 0.85, 1.0, 0.72), 0.9).set_trans(Tween.TRANS_SINE)
+	frame_tween.tween_property(frame, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.9).set_trans(Tween.TRANS_SINE)
 
 	# 3. GENIALNY MASKER: Tworzymy czarne zasłony na krawędziach ekranu,
 	# dzięki czemu pociski wychodzące za ramkę "znikną" pod nimi dla oka gracza!

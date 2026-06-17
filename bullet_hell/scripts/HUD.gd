@@ -11,9 +11,12 @@ extends CanvasLayer
 @onready var win_label = $WinLabel
 
 var result_dimmer: ColorRect
+var damage_border: Panel
 var _score_flash_timer: float = 0.0
 
 func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
+	if damage_border == null:
+		_setup_damage_border()
 	if result_dimmer == null:
 		result_dimmer = ColorRect.new()
 		result_dimmer.anchors_preset = Control.PRESET_FULL_RECT
@@ -102,6 +105,33 @@ func set_boss_hp_visible(enabled: bool) -> void:
 
 func flash_score() -> void:
 	_score_flash_timer = 0.3
+
+func play_damage_feedback() -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.play_player_hit()
+	if damage_border == null:
+		_setup_damage_border()
+	damage_border.visible = true
+	damage_border.modulate.a = 1.0
+	var tween := create_tween()
+	tween.tween_property(damage_border, "modulate:a", 0.0, 0.48).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(func(): damage_border.visible = false)
+
+func _setup_damage_border() -> void:
+	damage_border = Panel.new()
+	damage_border.name = "DamageBorder"
+	damage_border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	damage_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.4, 0.0, 0.04, 0.1)
+	style.border_color = Color(1.0, 0.02, 0.08, 0.95)
+	style.set_border_width_all(22)
+	style.shadow_color = Color(1.0, 0.0, 0.05, 0.7)
+	style.shadow_size = 30
+	damage_border.add_theme_stylebox_override("panel", style)
+	damage_border.visible = false
+	add_child(damage_border)
 
 func show_result(result: String) -> void:
 	win_label.visible = true

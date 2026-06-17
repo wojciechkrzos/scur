@@ -17,6 +17,8 @@ signal dialogue_finished(result)
 
 @export var text_speed: float = 50.0
 
+const VN_MUSIC_PATH := "res://assets/audio/music/vn_dark_ambient.wav"
+
 var shake_effect: ShakeEffect
 
 var lines: Array = []
@@ -31,6 +33,8 @@ var last_choice_id: String = ""
 var waiting_for_end := false #delay po koncu dialogu zeby zdazyc przeczytac ostatnia wiadomosc
 var id_to_index := {} #mapowanie id dialogu na indeksy
 var current_dialogue_id: String = ""
+var music_player: AudioStreamPlayer
+var music_tween: Tween
 
 const DIALOGUE_BACKGROUNDS := {
 	"tutorial": "res://assets/vn/background_tutorial.png",
@@ -56,6 +60,7 @@ func _ready() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	dialogue_text.bbcode_enabled = true
+	_setup_music()
 
 	shake_effect = ShakeEffect.new()
 	dialogue_text.install_effect(shake_effect)
@@ -99,6 +104,7 @@ func start_dialogue(dialogue_lines: Array) -> void:
 			id_to_index[line["id"]] = i
 
 	visible = true
+	_fade_music_in()
 	dialogue_started.emit()
 
 	_show_current_line()
@@ -320,6 +326,49 @@ func _end_dialogue() -> void:
 	set_process(false)
 	_clear_choices()
 	waiting_for_end = false
+	_fade_music_out()
 	dialogue_finished.emit({
 		"choice": last_choice_id
 	})
+
+func stop_dialogue() -> void:
+	visible = false
+	set_process(false)
+	_clear_choices()
+	waiting_for_end = false
+	if music_tween != null and music_tween.is_valid():
+		music_tween.kill()
+	if music_player != null:
+		music_player.stop()
+
+func _setup_music() -> void:
+	music_player = AudioStreamPlayer.new()
+	music_player.name = "VNMusicPlayer"
+	music_player.bus = &"Music"
+	music_player.volume_db = -40.0
+	if ResourceLoader.exists(VN_MUSIC_PATH):
+		var stream := load(VN_MUSIC_PATH) as AudioStream
+		if stream is AudioStreamWAV:
+			(stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+		music_player.stream = stream
+	add_child(music_player)
+
+func _fade_music_in() -> void:
+	if music_player == null or music_player.stream == null:
+		return
+	if music_tween != null and music_tween.is_valid():
+		music_tween.kill()
+	music_player.volume_db = -40.0
+	if not music_player.playing:
+		music_player.play()
+	music_tween = create_tween()
+	music_tween.tween_property(music_player, "volume_db", -8.0, 1.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _fade_music_out() -> void:
+	if music_player == null or not music_player.playing:
+		return
+	if music_tween != null and music_tween.is_valid():
+		music_tween.kill()
+	music_tween = create_tween()
+	music_tween.tween_property(music_player, "volume_db", -40.0, 0.75).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	music_tween.tween_callback(music_player.stop)

@@ -2,37 +2,184 @@
 
 [ext_resource type="Script" uid="uid://dr06c7qntain1" path="res://ui/PauseMenu.gd" id="1_c7v6e"]
 
-[node name="PauseMenu" type="CanvasLayer" unique_id=742460664]
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 100
 script = ExtResource("1_c7v6e")
 
-[node name="Background" type="ColorRect" parent="." unique_id=750596347]
+[node name="Background" type="ColorRect" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 1
-color = Color(0, 0, 0, 0.78431374)
+mouse_filter = 0
+color = Color(0.015, 0.008, 0.025, 0.88)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=804063706]
+[node name="TopLine" type="ColorRect" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+grow_horizontal = 2
+color = Color(0.72, 0.12, 0.15, 0.9)
+
+[node name="BottomLine" type="ColorRect" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.72, 0.12, 0.15, 0.9)
+
+[node name="CenterPanel" type="PanelContainer" parent="."]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -31.0
-offset_right = 20.0
-offset_bottom = 31.0
+offset_left = -390.0
+offset_top = -330.0
+offset_right = 390.0
+offset_bottom = 330.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TutorialLabel" type="Label" parent="VBoxContainer" unique_id=834414665]
+[node name="PanelMargin" type="MarginContainer" parent="CenterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 38
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 38
+theme_override_constants/margin_bottom = 28
+
+[node name="MenuVBox" type="VBoxContainer" parent="CenterPanel/PanelMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="CenterPanel/PanelMargin/MenuVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.46, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.01, 0.02, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 48
+text = "PAUZA"
+horizontal_alignment = 1
+
+[node name="Divider" type="HSeparator" parent="CenterPanel/PanelMargin/MenuVBox"]
 layout_mode = 2
 
-[node name="ObjectiveLabel" type="Label" parent="VBoxContainer" unique_id=2109336906]
+[node name="InfoGrid" type="GridContainer" parent="CenterPanel/PanelMargin/MenuVBox"]
+custom_minimum_size = Vector2(0, 230)
+layout_mode = 2
+theme_override_constants/h_separation = 28
+columns = 2
+
+[node name="TutorialLabel" type="Label" parent="CenterPanel/PanelMargin/MenuVBox/InfoGrid"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.82, 0.86, 0.94, 1)
+theme_override_font_sizes/font_size = 19
+text = "STEROWANIE"
+autowrap_mode = 2
+
+[node name="ObjectiveLabel" type="Label" parent="CenterPanel/PanelMargin/MenuVBox/InfoGrid"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(1, 0.68, 0.38, 1)
+theme_override_font_sizes/font_size = 19
+text = "AKTUALNY CEL"
+autowrap_mode = 2
+
+[node name="ContinueButton" type="Button" parent="CenterPanel/PanelMargin/MenuVBox"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+text = "KONTYNUUJ"
+
+[node name="OptionsButton" type="Button" parent="CenterPanel/PanelMargin/MenuVBox"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+text = "OPCJE"
+
+[node name="MainMenuButton" type="Button" parent="CenterPanel/PanelMargin/MenuVBox"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+text = "MENU GŁÓWNE"
+
+[node name="OptionsVBox" type="VBoxContainer" parent="CenterPanel/PanelMargin"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Title" type="Label" parent="CenterPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.46, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.01, 0.02, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 46
+text = "OPCJE DŹWIĘKU"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="CenterPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.68, 0.76, 1)
+text = "Ustawienia zapisują się automatycznie"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="CenterPanel/PanelMargin/OptionsVBox"]
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 
-[node name="ContinueButton" type="Button" parent="VBoxContainer" unique_id=2014232586]
+[node name="MusicRow" type="HBoxContainer" parent="CenterPanel/PanelMargin/OptionsVBox"]
 layout_mode = 2
-text = "Kontynuuj"
+theme_override_constants/separation = 18
+
+[node name="MusicLabel" type="Label" parent="CenterPanel/PanelMargin/OptionsVBox/MusicRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "MUZYKA"
+
+[node name="MusicSlider" type="HSlider" parent="CenterPanel/PanelMargin/OptionsVBox/MusicRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 75.0
+
+[node name="MusicValue" type="Label" parent="CenterPanel/PanelMargin/OptionsVBox/MusicRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "75%"
+horizontal_alignment = 2
+
+[node name="SFXRow" type="HBoxContainer" parent="CenterPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="SFXLabel" type="Label" parent="CenterPanel/PanelMargin/OptionsVBox/SFXRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "EFEKTY"
+
+[node name="SFXSlider" type="HSlider" parent="CenterPanel/PanelMargin/OptionsVBox/SFXRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 50.0
+
+[node name="SFXValue" type="Label" parent="CenterPanel/PanelMargin/OptionsVBox/SFXRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "50%"
+horizontal_alignment = 2
+
+[node name="OptionsSpacer" type="Control" parent="CenterPanel/PanelMargin/OptionsVBox"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="CenterPanel/PanelMargin/OptionsVBox"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+text = "WRÓĆ"

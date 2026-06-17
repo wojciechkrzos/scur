@@ -76,6 +76,11 @@ func apply_ui_to_menu():
 
 
 func return_to_menu():
+	get_tree().paused = false
+	pause_menu.visible = false
+	if dialogue_box.has_method("stop_dialogue"):
+		dialogue_box.stop_dialogue()
+
 	if campaign_runner:
 		campaign_runner.queue_free()
 		campaign_runner = null
@@ -84,13 +89,13 @@ func return_to_menu():
 		current_stage.queue_free()
 		current_stage = null
 
-	get_tree().paused = false
-
 	if start_menu == null:
 		start_menu = StartMenuScene.instantiate()
 		add_child(start_menu)
 		apply_ui_to_menu()
 		start_menu.start_pressed.connect(_on_start_pressed)
+	else:
+		start_menu.visible = true
 
 	if menu_music_player != null and not menu_music_player.playing:
 		menu_music_player.play()
@@ -118,6 +123,10 @@ func _open_pause():
 func _close_pause():
 	get_tree().paused = false
 	pause_menu.visible = false
+
+
+func _return_to_main_menu() -> void:
+	return_to_menu()
 
 
 func _unhandled_input(event):
@@ -330,15 +339,16 @@ func _apply_ui_theme_to_controls(font: FontFile) -> void:
 	if dialogue_root != null:
 		dialogue_root.theme = ui_theme
 
-	var pause_vbox := pause_menu.get_node_or_null("VBoxContainer") as Control
-	if pause_vbox != null:
-		pause_vbox.theme = ui_theme
+	var pause_panel := pause_menu.get_node_or_null("CenterPanel") as Control
+	if pause_panel != null:
+		pause_panel.theme = ui_theme
 
 
 func _ready() -> void:
 
 	GameState.load_debug_config("res://debug_config.json")
 	pause_menu.resume_pressed.connect(_close_pause)
+	pause_menu.main_menu_pressed.connect(_return_to_main_menu)
 
 	set_process_input(true)
 	set_process_unhandled_input(true)
