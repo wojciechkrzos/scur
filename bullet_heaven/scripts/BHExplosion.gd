@@ -4,6 +4,7 @@ var damage: int = 2
 var radius: float = 72.0
 var lifetime: float = 0.22
 var anchor_ref: Node2D = null
+var _damaged_enemy_ids: Dictionary = {}
 var glow_phase: float = 0.0
 
 func get_damage() -> int:
@@ -30,7 +31,8 @@ func _draw() -> void:
 
 func _process(delta: float) -> void:
 	glow_phase += delta * 6.5
-	queue_redraw()
+	if Engine.get_process_frames() % 2 == 0:
+		queue_redraw()
 	lifetime -= delta
 	if lifetime <= 0.0:
 		queue_free()

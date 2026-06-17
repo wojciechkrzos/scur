@@ -14,8 +14,10 @@ var _elapsed: float = 0.0
 var _sprite: Sprite2D
 var _flip_h: bool = false
 var _collision_polygons: Array[PackedVector2Array] = []
+var _collision_shrink: float = 1.0
+var _render_as_ground_decal: bool = false
 
-func setup(texture: Texture2D, radius: float, scale_factor: float, frames_x: int = 1, frames_y: int = 1, anim_frames: int = 1, fps: float = 0.0, use_alpha_shape: bool = false, alpha_cutoff: float = 0.1) -> void:
+func setup(texture: Texture2D, radius: float, scale_factor: float, frames_x: int = 1, frames_y: int = 1, anim_frames: int = 1, fps: float = 0.0, use_alpha_shape: bool = false, alpha_cutoff: float = 0.1, collision_shrink: float = 1.0, ground_decal: bool = false) -> void:
 	obstacle_texture = texture
 	collision_radius = maxf(radius, 1.0)
 	visual_scale = maxf(scale_factor, 0.1)
@@ -25,6 +27,8 @@ func setup(texture: Texture2D, radius: float, scale_factor: float, frames_x: int
 	animation_fps = maxf(fps, 0.0)
 	use_alpha_collision = use_alpha_shape
 	alpha_threshold = clampf(alpha_cutoff, 0.0, 1.0)
+	_collision_shrink = clampf(collision_shrink, 0.5, 1.0)
+	_render_as_ground_decal = ground_decal
 
 func get_collision_radius() -> float:
 	return collision_radius
@@ -37,6 +41,9 @@ func set_visual_flip_h(enabled: bool) -> void:
 func blocks_player_point(point_global: Vector2, point_radius: float, position_offset: Vector2 = Vector2.ZERO) -> bool:
 	var obstacle_position: Vector2 = global_position + position_offset
 	if use_alpha_collision and not _collision_polygons.is_empty():
+		var max_extent: float = collision_radius + point_radius
+		if point_global.distance_squared_to(obstacle_position) > max_extent * max_extent:
+			return false
 		var local_point: Vector2 = point_global - obstacle_position
 		for polygon in _collision_polygons:
 			if polygon.is_empty():
@@ -48,6 +55,27 @@ func blocks_player_point(point_global: Vector2, point_radius: float, position_of
 		return false
 
 	return point_global.distance_to(obstacle_position) < collision_radius + point_radius
+
+func blocks_entity_point(point_global: Vector2, point_radius: float, position_offset: Vector2 = Vector2.ZERO) -> bool:
+	var obstacle_position: Vector2 = global_position + position_offset
+	var combined_radius: float = collision_radius + point_radius
+	return point_global.distance_squared_to(obstacle_position) <= combined_radius * combined_radius
+
+func get_push_normal(point_global: Vector2, point_radius: float, position_offset: Vector2 = Vector2.ZERO, movement: Vector2 = Vector2.ZERO) -> Vector2:
+	if not blocks_player_point(point_global, point_radius, position_offset):
+		return Vector2.ZERO
+
+	var obstacle_position: Vector2 = global_position + position_offset
+	if use_alpha_collision and not _collision_polygons.is_empty():
+		var local_point: Vector2 = point_global - obstacle_position
+		return _get_alpha_push_normal(local_point, point_radius, movement)
+
+	var away: Vector2 = point_global - obstacle_position
+	if away.length_squared() < 0.001:
+		if movement.length_squared() > 0.001:
+			return -movement.normalized()
+		return Vector2.UP
+	return away.normalized()
 
 func _ready() -> void:
 	collision_layer = 0
@@ -77,6 +105,9 @@ func _ready() -> void:
 	add_child(_sprite)
 
 func _process(delta: float) -> void:
+	z_index = int(global_position.y)
+	if _render_as_ground_decal:
+		z_index -= 24
 	if _sprite == null:
 		return
 	if frame_count <= 1 or animation_fps <= 0.0:
@@ -119,7 +150,7 @@ func _build_alpha_collision_shapes() -> void:
 			continue
 		var local_polygon := PackedVector2Array()
 		for point in polygon:
-			local_polygon.append((point - half_size) * visual_scale)
+			local_polygon.append((point - half_size) * visual_scale * _collision_shrink)
 		_collision_polygons.append(local_polygon)
 
 		var collision_polygon := CollisionPolygon2D.new()
@@ -139,3 +170,65 @@ func _distance_to_polygon(point: Vector2, polygon: PackedVector2Array) -> float:
 		if distance < min_distance:
 			min_distance = distance
 	return min_distance
+
+func _get_alpha_push_normal(local_point: Vector2, point_radius: float, movement: Vector2) -> Vector2:
+	var best_normal := Vector2.ZERO
+	var best_score: float = -INF
+	for polygon in _collision_polygons:
+		if polygon.is_empty():
+			continue
+		var normal := Vector2.ZERO
+		var score: float = 0.0
+		if Geometry2D.is_point_in_polygon(local_point, polygon):
+			normal = _nearest_edge_outward_normal(local_point, polygon)
+			score = 2.0
+		else:
+			var distance: float = _distance_to_polygon(local_point, polygon)
+			if distance > point_radius:
+				continue
+			var closest: Vector2 = _closest_point_on_polygon(local_point, polygon)
+			normal = local_point - closest
+			if normal.length_squared() < 0.001:
+				normal = _nearest_edge_outward_normal(local_point, polygon)
+			else:
+				normal = normal.normalized()
+			score = 1.0 - distance / maxf(point_radius, 1.0)
+		if movement.length_squared() > 0.001 and normal.dot(movement) > 0.0:
+			score += 0.25
+		if score > best_score:
+			best_score = score
+			best_normal = normal
+	return best_normal
+
+func _closest_point_on_polygon(point: Vector2, polygon: PackedVector2Array) -> Vector2:
+	var best_point: Vector2 = polygon[0]
+	var best_distance: float = INF
+	for index in polygon.size():
+		var from_point: Vector2 = polygon[index]
+		var to_point: Vector2 = polygon[(index + 1) % polygon.size()]
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(point, from_point, to_point)
+		var distance: float = point.distance_to(closest)
+		if distance < best_distance:
+			best_distance = distance
+			best_point = closest
+	return best_point
+
+func _nearest_edge_outward_normal(point: Vector2, polygon: PackedVector2Array) -> Vector2:
+	var best_normal := Vector2.ZERO
+	var best_distance: float = INF
+	for index in polygon.size():
+		var from_point: Vector2 = polygon[index]
+		var to_point: Vector2 = polygon[(index + 1) % polygon.size()]
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(point, from_point, to_point)
+		var distance: float = point.distance_to(closest)
+		if distance >= best_distance:
+			continue
+		best_distance = distance
+		var edge: Vector2 = to_point - from_point
+		if edge.length_squared() < 0.001:
+			continue
+		var normal := Vector2(-edge.y, edge.x).normalized()
+		if normal.dot(point - closest) < 0.0:
+			normal = -normal
+		best_normal = normal
+	return best_normal

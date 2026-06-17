@@ -3,7 +3,12 @@
 
 extends CanvasLayer
 
-@onready var lives_label = $UIMainContainer/Sidebar/LivesLabel
+const HEART_TEXTURE = preload("res://assets/universal/heart.png")
+
+const HEART_ICON_SIZE := 22.0
+
+@onready var lives_prefix = $UIMainContainer/Sidebar/LivesRow/LivesPrefix
+@onready var lives_icons = $UIMainContainer/Sidebar/LivesRow/LivesIcons
 @onready var score_label = $UIMainContainer/Sidebar/ScoreLabel
 @onready var timer_label = $UIMainContainer/TopRow/TimerLabel
 @onready var boss_hp_label = $UIMainContainer/TopRow/BossHPContainer/BossHPLabel
@@ -57,7 +62,7 @@ func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	
 	# Nadanie klimatycznych wielkości czcionek i obramowania tekstu
 	_apply_text_style(timer_label, 36)
-	_apply_text_style(lives_label, 22)
+	_apply_text_style(lives_prefix, 22)
 	_apply_text_style(score_label, 22)
 	_apply_text_style(boss_hp_label, 16)
 	
@@ -81,8 +86,18 @@ func _process(delta: float) -> void:
 		score_label.modulate = Color(1, 1, 1)
 
 func update_lives(n: int) -> void:
-	lives_label.text = "ŻYCIA: " + "♥ ".repeat(max(n, 0))
-	lives_label.modulate = Color(1.0, 0.3, 0.45) if n > 0 else Color(0.5, 0.5, 0.5)
+	for child in lives_icons.get_children():
+		child.queue_free()
+	var heart_modulate := Color(1.0, 0.3, 0.45) if n > 0 else Color(0.5, 0.5, 0.5)
+	for _index in max(n, 0):
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(HEART_ICON_SIZE, HEART_ICON_SIZE)
+		icon.texture = HEART_TEXTURE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.modulate = heart_modulate
+		lives_icons.add_child(icon)
 
 func update_score(s: int) -> void:
 	score_label.text = "WYNIK: %07d" % s

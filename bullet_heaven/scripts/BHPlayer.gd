@@ -24,6 +24,9 @@ const ANIM_ROW_SIDE := 2
 const ANIM_ROW_SIDE_BACK := 3
 const ANIM_ROW_BACK := 4
 
+const WALK_FRAME_SIZE := Vector2i(20, 20)
+const SPRITE_VISUAL_OFFSET_Y := -5.0
+
 @export var speed: float = 230.0
 @export var max_lives: int = 3
 @export var walk_sheet: Texture2D = preload("res://assets/bullet_heaven/player_walk.png")
@@ -51,8 +54,10 @@ var anchor_position: Vector2 = Vector2.ZERO
 var animation_elapsed: float = 0.0
 var facing_row: int = ANIM_ROW_FRONT
 var anim_sprite: Sprite2D
+var sprite_visual_root: Node2D
 
 const INVINCIBILITY_DURATION := 1.2
+const POST_POWERUP_INVINCIBILITY_DURATION := 1.5
 
 @onready var shoot_timer = $ShootTimer
 @onready var invincibility_timer = $InvincibilityTimer
@@ -99,6 +104,7 @@ func _process(delta: float) -> void:
 	if not fight_active or not is_alive:
 		return
 	position = anchor_position
+	z_index = int(global_position.y)
 	_update_walk_animation(delta)
 
 func _shoot_burst() -> void:
@@ -137,7 +143,6 @@ func _fire_aoe_pulse(weapon_data: Dictionary) -> void:
 	pulse.damage = int(weapon_data.get("damage", 1))
 	pulse.radius = float(weapon_data.get("radius", pulse.radius))
 	pulse.lifetime = float(weapon_data.get("lifetime", pulse.lifetime))
-	pulse.position = position
 	pulse.add_to_group("bh_player_attack")
 	shot_spawned.emit(pulse)
 
@@ -146,7 +151,7 @@ func _fire_vertical_jet(weapon_data: Dictionary) -> void:
 	var spacing: float = float(weapon_data.get("spacing", 10.0))
 	for raw_offset in _get_centered_offsets(shot_count, spacing):
 		_spawn_bullet(
-			position + Vector2(float(raw_offset), 0.0),
+			get_weapon_spawn_local() + Vector2(float(raw_offset), 0.0),
 			Vector2.UP,
 			float(weapon_data.get("shot_speed", 250.0)),
 			int(weapon_data.get("damage", 1))
@@ -160,7 +165,7 @@ func _fire_spiral_stream(weapon_data: Dictionary) -> void:
 	for i in shot_count:
 		var angle := spiral_phase + float(i) * angle_step
 		_spawn_bullet(
-			position,
+			get_weapon_spawn_local(),
 			Vector2.from_angle(angle),
 			float(weapon_data.get("shot_speed", 250.0)),
 			int(weapon_data.get("damage", 1))
@@ -171,7 +176,7 @@ func _fire_homing_missile(weapon_data: Dictionary) -> void:
 	var shot_count: int = int(weapon_data.get("shot_count", 1))
 	for index in shot_count:
 		var missile = BHHomingMissileScript.new()
-		missile.position = position
+		missile.position = get_weapon_spawn_local()
 		var spread_angle: float = (float(index) - float(shot_count - 1) * 0.5) * 0.24
 		missile.direction = Vector2.UP.rotated(spread_angle)
 		missile.speed = float(weapon_data.get("shot_speed", missile.speed))
@@ -185,7 +190,7 @@ func _fire_molotov_bomb(weapon_data: Dictionary) -> void:
 	var base_angle: float = randf_range(0.0, TAU)
 	for index in shot_count:
 		var molotov = BHMolotovProjectileScript.new()
-		molotov.position = position + Vector2(0.0, -16.0)
+		molotov.position = get_weapon_spawn_local() + Vector2(0.0, -16.0)
 		molotov.direction = Vector2.from_angle(base_angle + TAU * float(index) / float(shot_count))
 		molotov.speed = float(weapon_data.get("shot_speed", molotov.speed))
 		molotov.damage = int(weapon_data.get("damage", molotov.damage))
@@ -202,7 +207,7 @@ func _fire_fan_burst(weapon_data: Dictionary) -> void:
 		var ratio: float = 0.5 if shot_count == 1 else float(index) / float(shot_count - 1)
 		var angle: float = lerpf(-spread * 0.5, spread * 0.5, ratio)
 		_spawn_bullet(
-			position,
+			get_weapon_spawn_local(),
 			Vector2.UP.rotated(angle),
 			float(weapon_data.get("shot_speed", 280.0)),
 			int(weapon_data.get("damage", 1))
@@ -230,9 +235,16 @@ func take_hit() -> void:
 	_start_invincibility()
 
 func _start_invincibility() -> void:
+	grant_invincibility(INVINCIBILITY_DURATION)
+
+func grant_post_powerup_invincibility() -> void:
+	grant_invincibility(POST_POWERUP_INVINCIBILITY_DURATION)
+
+func grant_invincibility(duration: float) -> void:
 	is_invincible = true
 	_set_visual_alpha(0.4)
-	invincibility_timer.start(INVINCIBILITY_DURATION)
+	if invincibility_timer.time_left < duration:
+		invincibility_timer.start(duration)
 
 func _end_invincibility() -> void:
 	is_invincible = false
@@ -364,6 +376,19 @@ func _get_spiral_combo_multiplier() -> float:
 		return 1.0
 	return 1.0 + min(0.2 * float(speedup_stacks), 0.8)
 
+func get_weapon_spawn_local() -> Vector2:
+	return Vector2.ZERO
+
+func get_combat_center_local() -> Vector2:
+	return get_weapon_spawn_local()
+
+func get_combat_center_global() -> Vector2:
+	return global_position
+
+func get_debug_sprite_size() -> Vector2:
+	var applied_scale: float = maxf(walk_sprite_scale, 0.1)
+	return Vector2(WALK_FRAME_SIZE) * applied_scale
+
 func get_move_input() -> Vector2:
 	var dir := Vector2.ZERO
 	if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
@@ -376,6 +401,16 @@ func get_move_input() -> Vector2:
 		dir.y += 1
 	return dir.normalized() if dir != Vector2.ZERO else Vector2.ZERO
 
+func _ensure_sprite_visual_root() -> Node2D:
+	if sprite_visual_root != null and is_instance_valid(sprite_visual_root):
+		sprite_visual_root.position = Vector2(0.0, SPRITE_VISUAL_OFFSET_Y)
+		return sprite_visual_root
+	sprite_visual_root = Node2D.new()
+	sprite_visual_root.name = "SpriteVisual"
+	sprite_visual_root.position = Vector2(0.0, SPRITE_VISUAL_OFFSET_Y)
+	add_child(sprite_visual_root)
+	return sprite_visual_root
+
 func _ensure_animation_sprite() -> void:
 	if anim_sprite != null and is_instance_valid(anim_sprite):
 		_apply_animation_sprite_settings()
@@ -386,8 +421,8 @@ func _ensure_animation_sprite() -> void:
 	anim_sprite = Sprite2D.new()
 	anim_sprite.name = "PlayerAnimSprite"
 	_apply_animation_sprite_settings()
-	anim_sprite.frame_coords = Vector2i(0, ANIM_ROW_FRONT)
-	add_child(anim_sprite)
+	_set_animation_frame(0, ANIM_ROW_FRONT)
+	_ensure_sprite_visual_root().add_child(anim_sprite)
 
 	if sprite != null:
 		sprite.visible = false
@@ -395,13 +430,28 @@ func _ensure_animation_sprite() -> void:
 func _apply_animation_sprite_settings() -> void:
 	if anim_sprite == null:
 		return
+	_ensure_sprite_visual_root()
 	anim_sprite.texture = walk_sheet
-	anim_sprite.centered = true
-	anim_sprite.hframes = maxi(walk_hframes, 1)
-	anim_sprite.vframes = maxi(walk_vframes, 1)
+	anim_sprite.hframes = 1
+	anim_sprite.vframes = 1
+	anim_sprite.region_enabled = true
 	anim_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var applied_scale: float = maxf(walk_sprite_scale, 0.1)
+	var sprite_size: Vector2 = Vector2(WALK_FRAME_SIZE) * applied_scale
+	anim_sprite.centered = false
+	anim_sprite.offset = Vector2.ZERO
 	anim_sprite.scale = Vector2(applied_scale, applied_scale)
+	anim_sprite.position = -sprite_size * 0.5
+
+func _set_animation_frame(frame_index: int, row_index: int) -> void:
+	if anim_sprite == null:
+		return
+	var clamped_row: int = clampi(row_index, 0, maxi(walk_vframes, 1) - 1)
+	var clamped_frame: int = clampi(frame_index, 0, maxi(walk_hframes, 1) - 1)
+	anim_sprite.region_rect = Rect2(
+		Vector2(clamped_frame * WALK_FRAME_SIZE.x, clamped_row * WALK_FRAME_SIZE.y),
+		Vector2(WALK_FRAME_SIZE)
+	)
 
 func _update_walk_animation(delta: float) -> void:
 	if anim_sprite == null or not is_instance_valid(anim_sprite):
@@ -410,18 +460,18 @@ func _update_walk_animation(delta: float) -> void:
 	var move_input := get_move_input()
 	if move_input == Vector2.ZERO:
 		animation_elapsed = 0.0
-		var idle_row: int = mini(maxi(facing_row, 0), anim_sprite.vframes - 1)
-		anim_sprite.frame_coords = Vector2i(0, idle_row)
+		var idle_row: int = mini(maxi(facing_row, 0), walk_vframes - 1)
+		_set_animation_frame(0, idle_row)
 		anim_sprite.flip_h = false
 		return
 
 	var row_and_flip := _resolve_animation_row_and_flip(move_input)
-	facing_row = mini(maxi(int(row_and_flip["row"]), 0), anim_sprite.vframes - 1)
+	facing_row = mini(maxi(int(row_and_flip["row"]), 0), walk_vframes - 1)
 	anim_sprite.flip_h = bool(row_and_flip["flip_h"])
 	animation_elapsed += delta * max(walk_fps, 1.0)
-	var frame_count: int = mini(maxi(walk_frame_count, 1), anim_sprite.hframes)
+	var frame_count: int = mini(maxi(walk_frame_count, 1), walk_hframes)
 	var frame_index: int = int(floor(animation_elapsed)) % frame_count
-	anim_sprite.frame_coords = Vector2i(frame_index, facing_row)
+	_set_animation_frame(frame_index, facing_row)
 
 func _resolve_animation_row_and_flip(direction: Vector2) -> Dictionary:
 	var x := direction.x

@@ -21,12 +21,14 @@ enum AnimState {
 	ATTACK,
 }
 
+const BHMovementCollision = preload("res://bullet_heaven/scripts/BHMovementCollision.gd")
+
 @export var enemy_kind: EnemyKind = EnemyKind.STANDARD
 @export var speed: float = 95.0
 @export var hp: int = 1
 @export var xp_value: int = 1
-@export var damage_flash_color: Color = Color(1.0, 0.95, 0.95, 1.0)
-@export var damage_flash_duration: float = 0.08
+@export var damage_flash_color: Color = Color(2.2, 0.35, 0.35, 1.0)
+@export var damage_flash_duration: float = 0.14
 @export_file("*.png", "*.webp") var standard_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_goon.png"
 @export_file("*.png", "*.webp") var tank_enemy_texture_path: String = "res://assets/bullet_heaven/ratfolk_brute.png"
 @export var standard_frame_size: Vector2i = Vector2i(32, 32)
@@ -48,6 +50,7 @@ enum AnimState {
 @export var tank_walk_fps: float = 8.0
 @export var tank_attack_fps: float = 11.0
 @export var movement_epsilon: float = 0.02
+@export var sprite_visual_offset_y: float = -30.0
 
 var player_ref: Node2D
 var play_area: Rect2 = Rect2()
@@ -62,6 +65,7 @@ var body_color: Color = Color(0.9, 0.2, 0.2, 1.0)
 var body_size: Vector2 = Vector2(16, 16)
 var collision_radius: float = 8.0
 var enemy_sprite: Sprite2D
+var sprite_visual_root: Node2D
 var current_anim_state: AnimState = AnimState.IDLE
 var enemy_anim_elapsed: float = 0.0
 var enemy_anim_frame: int = 0
@@ -88,7 +92,6 @@ func _apply_kind_stats() -> void:
 			movement_mode = MovementMode.HOMING
 			body_color = Color(0.9, 0.55, 0.15, 1.0)
 			body_size = Vector2(26, 26)
-			collision_radius = 11.5
 		EnemyKind.SWARM:
 			speed = 225.0
 			hp = 1
@@ -96,7 +99,6 @@ func _apply_kind_stats() -> void:
 			movement_mode = MovementMode.LINE
 			body_color = Color(0.95, 0.9, 0.25, 1.0)
 			body_size = Vector2(14, 14)
-			collision_radius = 6.0
 		EnemyKind.HUNTER:
 			speed = 138.0
 			maximum_speed = 245.0
@@ -106,7 +108,6 @@ func _apply_kind_stats() -> void:
 			movement_mode = MovementMode.HOMING
 			body_color = Color(0.72, 0.18, 0.95, 1.0)
 			body_size = Vector2(18, 18)
-			collision_radius = 8.5
 		EnemyKind.ELITE:
 			speed = 78.0
 			hp = 14
@@ -114,7 +115,6 @@ func _apply_kind_stats() -> void:
 			movement_mode = MovementMode.HOMING
 			body_color = Color(0.82, 0.08, 0.2, 1.0)
 			body_size = Vector2(32, 32)
-			collision_radius = 14.0
 		_:
 			speed = 95.0
 			hp = 1
@@ -122,11 +122,11 @@ func _apply_kind_stats() -> void:
 			movement_mode = MovementMode.HOMING
 			body_color = Color(0.9, 0.2, 0.2, 1.0)
 			body_size = Vector2(16, 16)
-			collision_radius = 8.0
+	collision_radius = _compute_visual_collision_radius()
 
 func _ready() -> void:
 	collision_layer = 1
-	collision_mask = 2 | 3
+	collision_mask = 2
 	add_to_group("bh_enemy")
 
 	var col = CollisionShape2D.new()
@@ -137,9 +137,13 @@ func _ready() -> void:
 
 	var sprite_texture: Texture2D = _load_enemy_texture_for_kind()
 	if sprite_texture != null:
+		sprite_visual_root = Node2D.new()
+		sprite_visual_root.name = "SpriteVisual"
+		sprite_visual_root.position = Vector2(0.0, sprite_visual_offset_y)
+		add_child(sprite_visual_root)
 		enemy_sprite = _create_enemy_sprite(sprite_texture)
 		if enemy_sprite != null:
-			add_child(enemy_sprite)
+			sprite_visual_root.add_child(enemy_sprite)
 			_apply_animation_frame()
 	else:
 		var vis = ColorRect.new()
@@ -148,10 +152,13 @@ func _ready() -> void:
 		vis.color = body_color
 		add_child(vis)
 
+	_sync_collision_shape()
+
 	damage_flash_overlay = ColorRect.new()
-	damage_flash_overlay.size = body_size
-	damage_flash_overlay.position = -body_size * 0.5
-	damage_flash_overlay.color = Color(1.0, 1.0, 1.0, 0.0)
+	var flash_size: Vector2 = _get_visual_size()
+	damage_flash_overlay.size = flash_size
+	damage_flash_overlay.position = -flash_size * 0.5
+	damage_flash_overlay.color = Color(1.0, 0.92, 0.92, 0.0)
 	damage_flash_overlay.z_index = 1000
 	damage_flash_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(damage_flash_overlay)
@@ -166,20 +173,29 @@ func _process(delta: float) -> void:
 				return
 			var dir: Vector2 = (player_ref.global_position - global_position).normalized()
 			var homing_step: Vector2 = dir * speed * delta
-			var homing_target: Vector2 = global_position + homing_step
-			if not _would_overlap_obstacle(homing_target):
-				global_position = homing_target
+			global_position = BHMovementCollision.resolve_position(
+				obstacle_container,
+				global_position,
+				homing_step,
+				collision_radius,
+				true
+			)
 			if global_position.distance_to(player_ref.global_position) > 1500.0:
 				queue_free()
 		MovementMode.LINE:
 			var line_step: Vector2 = move_direction * speed * delta
-			var line_target: Vector2 = global_position + line_step
-			if not _would_overlap_obstacle(line_target):
-				global_position = line_target
+			global_position = BHMovementCollision.resolve_position(
+				obstacle_container,
+				global_position,
+				line_step,
+				collision_radius,
+				true
+			)
 			if _is_outside_play_area(140.0):
 				queue_free()
 
 	var movement_delta: Vector2 = global_position - previous_position
+	z_index = int(global_position.y)
 	var moved_this_frame: bool = movement_delta.length_squared() > movement_epsilon * movement_epsilon
 	var distance_to_player: float = INF
 	if player_ref != null:
@@ -241,7 +257,7 @@ func _play_damage_flash() -> void:
 	for index in flash_targets.size():
 		damage_flash_tween.tween_property(flash_targets[index], "modulate", flash_colors[index], damage_flash_duration * 0.5)
 	if damage_flash_overlay != null:
-		damage_flash_tween.tween_property(damage_flash_overlay, "modulate", Color(1.0, 1.0, 1.0, 0.85), damage_flash_duration * 0.5)
+		damage_flash_tween.tween_property(damage_flash_overlay, "modulate", Color(1.0, 1.0, 1.0, 0.95), damage_flash_duration * 0.35)
 	damage_flash_tween.set_parallel(false)
 	for index in flash_targets.size():
 		damage_flash_tween.tween_property(flash_targets[index], "modulate", restore_colors[index], damage_flash_duration * 0.5)
@@ -250,6 +266,10 @@ func _play_damage_flash() -> void:
 	damage_flash_tween.finished.connect(_on_damage_flash_finished)
 
 func _collect_flash_targets(node: Node, flash_targets: Array[CanvasItem], flash_colors: Array[Color], restore_colors: Array[Color]) -> void:
+	if node == damage_flash_overlay:
+		for child in node.get_children():
+			_collect_flash_targets(child, flash_targets, flash_colors, restore_colors)
+		return
 	if node is CanvasItem and not (node is CollisionShape2D or node is CollisionPolygon2D):
 		var canvas_item := node as CanvasItem
 		flash_targets.append(canvas_item)
@@ -289,15 +309,19 @@ func _create_enemy_sprite(texture: Texture2D) -> Sprite2D:
 
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.texture = texture
-	sprite.centered = true
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.hframes = columns
 	sprite.vframes = rows
 	sprite.frame_coords = Vector2i(0, 0)
 
-	var target_size: Vector2 = body_size * _get_visual_scale_multiplier_for_kind()
-	var scale_ratio: float = minf(target_size.x / float(frame_size.x), target_size.y / float(frame_size.y))
+	var visual_size: Vector2 = _get_visual_size()
+	var scale_ratio: float = minf(
+		visual_size.x / float(frame_size.x),
+		visual_size.y / float(frame_size.y)
+	)
+	sprite.centered = false
 	sprite.scale = Vector2(scale_ratio, scale_ratio)
+	sprite.position = -visual_size * 0.5
 	match enemy_kind:
 		EnemyKind.HUNTER:
 			sprite.modulate = Color(0.82, 0.48, 1.0, 1.0)
@@ -323,6 +347,36 @@ func _get_visual_scale_multiplier_for_kind() -> float:
 		_:
 			return maxf(standard_visual_scale_multiplier, 0.1)
 
+func _get_visual_size() -> Vector2:
+	if enemy_kind == EnemyKind.SWARM:
+		return body_size
+	var frame_size: Vector2i = _get_enemy_frame_size()
+	if frame_size == Vector2i.ZERO:
+		return body_size
+	var target_size: Vector2 = body_size * _get_visual_scale_multiplier_for_kind()
+	var scale_ratio: float = minf(
+		target_size.x / float(frame_size.x),
+		target_size.y / float(frame_size.y)
+	)
+	return Vector2(frame_size) * scale_ratio
+
+func _compute_visual_collision_radius() -> float:
+	if enemy_kind == EnemyKind.SWARM:
+		return maxf(minf(body_size.x, body_size.y) * 0.35, 5.0)
+	var visual_size: Vector2 = _get_visual_size()
+	return maxf(minf(visual_size.x, visual_size.y) * 0.34, 8.0)
+
+func _sync_collision_shape() -> void:
+	collision_radius = _compute_visual_collision_radius()
+	for child in get_children():
+		if child is CollisionShape2D:
+			var shape: CircleShape2D = (child as CollisionShape2D).shape as CircleShape2D
+			if shape != null:
+				shape.radius = collision_radius
+
+func get_debug_sprite_size() -> Vector2:
+	return _get_visual_size()
+
 func _load_enemy_texture_for_kind() -> Texture2D:
 	var path := ""
 	match enemy_kind:
@@ -343,6 +397,8 @@ func _load_enemy_texture_for_kind() -> Texture2D:
 
 func _update_animation(delta: float, moved_this_frame: bool, distance_to_player: float, movement_delta: Vector2) -> void:
 	if enemy_sprite == null:
+		return
+	if distance_to_player > 420.0 and Engine.get_process_frames() % 3 != 0:
 		return
 
 	if absf(movement_delta.x) > movement_epsilon:

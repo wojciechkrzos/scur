@@ -29,11 +29,11 @@ const WEAPON_DEFINITIONS := {
 		"icon_path": "res://assets/bullet_heaven/icons/impulse.png",
 		"fire_mode": "aoe_pulse",
 		"levels": [
-			{"damage": 1, "radius": 54.0, "lifetime": 0.32},
-			{"damage": 1, "radius": 62.0, "lifetime": 0.34},
-			{"damage": 2, "radius": 70.0, "lifetime": 0.36},
-			{"damage": 2, "radius": 78.0, "lifetime": 0.38},
-			{"damage": 3, "radius": 88.0, "lifetime": 0.42},
+			{"damage": 1, "radius": 81.0, "lifetime": 0.32},
+			{"damage": 1, "radius": 96.0, "lifetime": 0.34},
+			{"damage": 2, "radius": 114.0, "lifetime": 0.36},
+			{"damage": 2, "radius": 135.0, "lifetime": 0.38},
+			{"damage": 3, "radius": 160.0, "lifetime": 0.42},
 		],
 	},
 	WeaponId.VERTICAL_JET: {
@@ -79,7 +79,7 @@ const WEAPON_DEFINITIONS := {
 		"levels": [
 			{"damage": 1, "shot_speed": 145.0, "distance": 430.0, "explosion_damage": 3, "explosion_radius": 84.0, "explosion_lifetime": 1.4, "shot_count": 1},
 			{"damage": 1, "shot_speed": 150.0, "distance": 445.0, "explosion_damage": 4, "explosion_radius": 92.0, "explosion_lifetime": 1.55, "shot_count": 1},
-			{"damage": 2, "shot_speed": 155.0, "distance": 460.0, "explosion_damage": 4, "explosion_radius": 102.0, "explosion_lifetime": 1.7, "shot_count": 1},
+			{"damage": 2, "shot_speed": 155.0, "distance": 460.0, "explosion_damage": 5, "explosion_radius": 102.0, "explosion_lifetime": 1.7, "shot_count": 1},
 			{"damage": 2, "shot_speed": 160.0, "distance": 475.0, "explosion_damage": 5, "explosion_radius": 111.0, "explosion_lifetime": 1.85, "shot_count": 2},
 			{"damage": 3, "shot_speed": 170.0, "distance": 500.0, "explosion_damage": 6, "explosion_radius": 120.0, "explosion_lifetime": 2.0, "shot_count": 2},
 		],
@@ -191,11 +191,11 @@ static func get_upgrade_summary(weapon_id: int, current_level: int) -> String:
 
 	match weapon_id:
 		WeaponId.AOE_PULSE:
-			return "Promień %.0f → %.0f | Obrażenia %d → %d" % [current.radius, next.radius, current.damage, next.damage]
+			return "Promień %.0f > %.0f | Obrażenia %d > %d" % [current.radius, next.radius, current.damage, next.damage]
 		WeaponId.VERTICAL_JET, WeaponId.SPIRAL_STREAM, WeaponId.FAN_BURST:
-			return "Pociski %d → %d | Obrażenia %d → %d" % [current.shot_count, next.shot_count, current.damage, next.damage]
+			return "Pociski %d > %d | Obrażenia %d > %d" % [current.shot_count, next.shot_count, current.damage, next.damage]
 		WeaponId.HOMING_MISSILE:
-			return "Rakiety %d → %d | Obrażenia %d → %d" % [current.shot_count, next.shot_count, current.damage, next.damage]
+			return "Rakiety %d > %d | Obrażenia %d > %d" % [current.shot_count, next.shot_count, current.damage, next.damage]
 		WeaponId.MOLOTOV_BOMB:
-			return "Bomby %d → %d | Wybuch %d → %d" % [current.shot_count, next.shot_count, current.explosion_damage, next.explosion_damage]
-	return "Poziom %d → %d" % [current_level, next_level]
+			return "Bomby %d > %d | Wybuch %d > %d" % [current.shot_count, next.shot_count, current.explosion_damage, next.explosion_damage]
+	return "Poziom %d > %d" % [current_level, next_level]

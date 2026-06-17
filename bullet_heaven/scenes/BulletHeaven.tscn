@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://bbv2q67aulsnp" path="res://bullet_heaven/scripts/BHBackdrop.gd" id="4_0h4"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_0h1"]
-radius = 7.0
+radius = 10.0
 
 [node name="BulletHeaven" type="Node2D" unique_id=1730214961]
 script = ExtResource("1_0h1")
@@ -51,8 +51,8 @@ script = ExtResource("3_0h3")
 [node name="StatusPanel" type="PanelContainer" parent="HUD" unique_id=538955432]
 offset_left = 18.0
 offset_top = 18.0
-offset_right = 270.0
-offset_bottom = 154.0
+offset_right = 300.0
+offset_bottom = 198.0
 
 [node name="StatusMargin" type="MarginContainer" parent="HUD/StatusPanel" unique_id=1198897555]
 layout_mode = 2
@@ -65,9 +65,17 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="LivesLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=1800568097]
+[node name="LivesRow" type="HBoxContainer" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=1800568097]
 layout_mode = 2
-text = "ZYYYCIA  ♥ ♥ ♥"
+theme_override_constants/separation = 6
+
+[node name="LivesPrefix" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox/LivesRow"]
+layout_mode = 2
+text = "ŻYCIA"
+
+[node name="LivesIcons" type="HBoxContainer" parent="HUD/StatusPanel/StatusMargin/StatusVBox/LivesRow"]
+layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="KillsLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=699477887]
 layout_mode = 2
@@ -76,6 +84,16 @@ text = "ELIMINACJE  0000"
 [node name="LevelLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=587662059]
 layout_mode = 2
 text = "POZIOM  01"
+
+[node name="ExperienceLabel" type="Label" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=1164688228]
+layout_mode = 2
+text = "PD  00 / 05"
+
+[node name="ExperienceBar" type="ProgressBar" parent="HUD/StatusPanel/StatusMargin/StatusVBox" unique_id=898035833]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+max_value = 5.0
+show_percentage = false
 
 [node name="TimerPanel" type="PanelContainer" parent="HUD" unique_id=540526780]
 anchors_preset = 5
@@ -139,36 +157,6 @@ layout_mode = 2
 [node name="WeaponList" type="VBoxContainer" parent="HUD/WeaponPanel/WeaponMargin/WeaponVBox" unique_id=1141970585]
 layout_mode = 2
 theme_override_constants/separation = 5
-
-[node name="ExperiencePanel" type="PanelContainer" parent="HUD" unique_id=186547550]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 180.0
-offset_top = -82.0
-offset_right = -180.0
-offset_bottom = -18.0
-
-[node name="ExperienceMargin" type="MarginContainer" parent="HUD/ExperiencePanel" unique_id=1491031938]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 8
-
-[node name="ExperienceVBox" type="VBoxContainer" parent="HUD/ExperiencePanel/ExperienceMargin" unique_id=1500303640]
-layout_mode = 2
-
-[node name="ExperienceLabel" type="Label" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox" unique_id=1164688228]
-layout_mode = 2
-text = "PD  00 / 05"
-horizontal_alignment = 1
-
-[node name="ExperienceBar" type="ProgressBar" parent="HUD/ExperiencePanel/ExperienceMargin/ExperienceVBox" unique_id=898035833]
-custom_minimum_size = Vector2(0, 18)
-layout_mode = 2
-max_value = 5.0
-show_percentage = false
 
 [node name="ResultLabel" type="Label" parent="HUD" unique_id=1632523819]
 visible = false

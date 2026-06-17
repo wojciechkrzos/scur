@@ -7,6 +7,8 @@ var damage: int = 3
 var max_range: float = 1050.0
 var anchor_ref: Node2D = null
 var target_group: StringName = &"bh_enemy"
+var _target_search_cooldown: float = 0.0
+var _cached_target: Area2D = null
 
 func get_damage() -> int:
 	return damage
@@ -39,7 +41,13 @@ func _process(delta: float) -> void:
 		queue_free()
 		return
 
-	var target := _get_nearest_target()
+	_target_search_cooldown -= delta
+	if _target_search_cooldown <= 0.0:
+		_target_search_cooldown = 0.12
+		_cached_target = _get_nearest_target()
+	if _cached_target != null and not is_instance_valid(_cached_target):
+		_cached_target = null
+	var target: Area2D = _cached_target
 	if target != null:
 		var to_target := (target.global_position - global_position).normalized()
 		if to_target != Vector2.ZERO:

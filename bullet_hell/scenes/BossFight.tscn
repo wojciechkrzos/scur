@@ -129,9 +129,17 @@ size_flags_horizontal = 8
 size_flags_vertical = 4
 theme_override_constants/separation = 10
 
-[node name="LivesLabel" type="Label" parent="HUD/UIMainContainer/Sidebar" unique_id=2077584508]
+[node name="LivesRow" type="HBoxContainer" parent="HUD/UIMainContainer/Sidebar" unique_id=2077584508]
 layout_mode = 2
-text = "Życia: ♥ ♥ ♥"
+theme_override_constants/separation = 6
+
+[node name="LivesPrefix" type="Label" parent="HUD/UIMainContainer/Sidebar/LivesRow"]
+layout_mode = 2
+text = "ŻYCIA:"
+
+[node name="LivesIcons" type="HBoxContainer" parent="HUD/UIMainContainer/Sidebar/LivesRow"]
+layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="ScoreLabel" type="Label" parent="HUD/UIMainContainer/Sidebar" unique_id=956268702]
 layout_mode = 2

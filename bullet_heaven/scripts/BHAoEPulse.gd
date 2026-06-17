@@ -1,9 +1,10 @@
 extends Area2D
 
 var damage: int = 1
-var radius: float = 54.0
+var radius: float = 81.0
 var lifetime: float = 0.32
 var anchor_ref: Node2D = null
+var _damaged_enemy_ids: Dictionary = {}
 
 func get_damage() -> int:
 	return damage
@@ -24,8 +25,6 @@ func _draw() -> void:
 	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 44, Color(0.72, 0.96, 1.0, 0.9), 2.0)
 
 func _process(delta: float) -> void:
-	if anchor_ref != null:
-		global_position = anchor_ref.global_position
 	lifetime -= delta
 	if lifetime <= 0.0:
 		queue_free()

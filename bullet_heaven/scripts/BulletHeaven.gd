@@ -5,12 +5,18 @@ signal swarm_warning_started
 signal swarm_spawned
 
 const BHEnemyScript = preload("res://bullet_heaven/scripts/BHEnemy.gd")
+const BHPlayerScript = preload("res://bullet_heaven/scripts/BHPlayer.gd")
 const BHExperienceOrbScript = preload("res://bullet_heaven/scripts/BHExperienceOrb.gd")
 const BHTokenPickupScript = preload("res://bullet_heaven/scripts/BHTokenPickup.gd")
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 const BHObstacleScript = preload("res://bullet_heaven/scripts/BHObstacle.gd")
+const BHMovementCollision = preload("res://bullet_heaven/scripts/BHMovementCollision.gd")
 const BHSwarmWarningScript = preload("res://bullet_heaven/scripts/BHSwarmWarning.gd")
 const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
+const BHHitboxDebugOverlayScript = preload("res://bullet_heaven/scripts/BHHitboxDebugOverlay.gd")
+const MAX_ENEMIES_STAGE3 := 40
+const MAX_ENEMIES_DEFAULT := 55
+const PROJECTILE_HIT_INTERVAL := 0.033
 
 @export var stage_duration: float = 45.0
 @export var base_spawn_interval: float = 0.72
@@ -20,6 +26,7 @@ const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
 @export var world_size_px: Vector2 = Vector2(1920.0, 1080.0)
 @export var border_visibility_padding_px: Vector2 = Vector2(500.0, 500.0)
 @export var initial_world_offset_px: Vector2 = Vector2(0.0, -180.0)
+@export var show_hitbox_debug: bool = false
 @export_file("*.webp", "*.png") var fountain_texture_path: String = "res://assets/bullet_heaven/fountain.png"
 @export_file("*.png", "*.webp") var pigeon_texture_path: String = "res://assets/bullet_heaven/pigeon_eat.png"
 @export var fountain_hframes: int = 4
@@ -28,10 +35,20 @@ const BHAudioScript = preload("res://bullet_heaven/scripts/BHAudio.gd")
 @export var fountain_fps: float = 8.0
 @export var fountain_visual_scale: float = 1.0
 @export var fountain_collision_radius: float = 120.0
-@export var xp_pickup_radius: float = 34.0
+@export var xp_pickup_radius: float = 28.0
 
 const SWARM_EDGE_MARGIN := 18.0
+const MIN_SPAWN_DISTANCE_FROM_PLAYER := 700.0
+const SPAWN_POSITION_MAX_ATTEMPTS := 24
 const TOKEN_DROP_CHANCE := 0.005
+
+const STAGE2_CAN_TEXTURES := [
+	"res://assets/bullet_heaven/can1.png",
+	"res://assets/bullet_heaven/can2.png",
+	"res://assets/bullet_heaven/can3.png",
+]
+const STAGE3_HOLE_TEXTURE := "res://assets/bullet_heaven/hole.png"
+const STAGE3_CONE_TEXTURE := "res://assets/bullet_heaven/cone.png"
 
 const STAGE_CONFIGS := {
 	"stage1": {
@@ -83,6 +100,9 @@ var swarm_enabled: bool = false
 var swarm_event_interval: float = 12.0
 var swarm_enemy_count: int = 9
 var swarm_warning_duration: float = 1.25
+var _projectile_cleanup_timer: float = 0.0
+var _projectile_hit_timer: float = 0.0
+var _hitbox_debug_overlay: Node2D
 
 @onready var backdrop = $Backdrop
 @onready var player = $Player
@@ -114,7 +134,7 @@ func configure_stage(profile: String, run_state: Dictionary = {}) -> void:
 
 func _apply_stage_profile() -> void:
 	var config: Dictionary = STAGE_CONFIGS.get(stage_profile, STAGE_CONFIGS["stage1"])
-	stage_duration = float(config.get("duration", 45.0))
+	stage_duration = GameState.get_bullet_heaven_stage_duration(stage_profile)
 	base_spawn_interval = float(config.get("spawn_interval", 0.72))
 	spawn_interval_floor = float(config.get("spawn_floor", 0.48))
 	wave_step_seconds = float(config.get("wave_seconds", 12.0))
@@ -150,10 +170,15 @@ func start_fight() -> void:
 
 	player.setup(play_area_rect, bullet_container)
 	_apply_initial_run_state()
+	player.max_lives = BHPlayerScript.BASE_MAX_LIVES
+	player.lives = player.max_lives
 	hud.setup(stage_duration, player.max_lives, stage_profile)
+	hud.update_level(player.level)
+	hud.update_experience(player.experience_points, player.xp_to_next_level)
 	hud.update_pattern(player.get_pattern_name())
 	hud.update_weapon_inventory(player.get_weapon_inventory())
 	backdrop.setup(play_area_rect, world_size_px)
+	backdrop.z_index = -200
 	if backdrop.has_method("set_stage"):
 		backdrop.set_stage(stage_profile)
 	backdrop.set_scroll_offset(world_offset)
@@ -176,6 +201,7 @@ func start_fight() -> void:
 		child.queue_free()
 	_spawn_stage_obstacles()
 	_ensure_player_spawn_clearance()
+	_ensure_hitbox_debug_overlay()
 
 	spawn_timer.wait_time = current_spawn_interval
 	if not spawn_timer.timeout.is_connected(_spawn_enemy):
@@ -229,6 +255,45 @@ func _process(delta: float) -> void:
 	hud.update_pattern(player.get_pattern_name())
 	hud.update_wave(wave_level)
 	_collect_nearby_xp_orbs()
+	_update_projectile_cleanup(delta)
+	_projectile_hit_timer -= delta
+	if _projectile_hit_timer <= 0.0:
+		_projectile_hit_timer = PROJECTILE_HIT_INTERVAL
+		_resolve_projectile_hits()
+
+func _update_projectile_cleanup(delta: float) -> void:
+	_projectile_cleanup_timer -= delta
+	if _projectile_cleanup_timer > 0.0:
+		return
+	_projectile_cleanup_timer = 2.0
+	if bullet_container == null or player == null:
+		return
+	var player_position: Vector2 = player.global_position
+	for child in bullet_container.get_children():
+		if not is_instance_valid(child):
+			continue
+		if not (child is Node2D):
+			continue
+		if (child as Node2D).global_position.distance_to(player_position) > 1400.0:
+			child.queue_free()
+
+func _ensure_hitbox_debug_overlay() -> void:
+	show_hitbox_debug = show_hitbox_debug or GameState.is_hitbox_debug_enabled()
+	if _hitbox_debug_overlay == null:
+		_hitbox_debug_overlay = Node2D.new()
+		_hitbox_debug_overlay.name = "HitboxDebugOverlay"
+		_hitbox_debug_overlay.set_script(BHHitboxDebugOverlayScript)
+		add_child(_hitbox_debug_overlay)
+	if _hitbox_debug_overlay.has_method("setup"):
+		_hitbox_debug_overlay.call("setup", self)
+	_hitbox_debug_overlay.visible = show_hitbox_debug or GameState.is_hitbox_debug_enabled()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_H:
+		show_hitbox_debug = not show_hitbox_debug
+		if _hitbox_debug_overlay != null:
+			_hitbox_debug_overlay.visible = show_hitbox_debug
+		get_viewport().set_input_as_handled()
 
 func _spawn_enemy() -> void:
 	if not fight_active:
@@ -236,13 +301,13 @@ func _spawn_enemy() -> void:
 
 	var batch_size := _get_regular_spawn_batch_size()
 	for _index in batch_size:
-		_spawn_enemy_of_kind(_choose_regular_enemy_kind(), _random_edge_position(play_area_rect))
+		_spawn_enemy_of_kind(_choose_regular_enemy_kind(), _pick_spawn_position())
 
 func _get_regular_spawn_batch_size() -> int:
 	if stage_profile != "stage3":
 		return 1
 	if wave_level >= 12:
-		return 3
+		return 2
 	if wave_level >= 5:
 		return 2
 	return 1
@@ -260,7 +325,19 @@ func _choose_regular_enemy_kind() -> int:
 		return BHEnemyScript.EnemyKind.TANK
 	return BHEnemyScript.EnemyKind.STANDARD
 
+func _get_max_enemies() -> int:
+	if stage_profile == "stage3":
+		return MAX_ENEMIES_STAGE3
+	return MAX_ENEMIES_DEFAULT
+
+func _get_enemy_count() -> int:
+	if enemy_container == null:
+		return 0
+	return enemy_container.get_child_count()
+
 func _spawn_enemy_of_kind(kind: int, spawn_position: Vector2, direction: Vector2 = Vector2.ZERO) -> void:
+	if _get_enemy_count() >= _get_max_enemies():
+		return
 	var enemy = BHEnemyScript.new()
 	var speed_scale := enemy_speed_multiplier
 	var health_scale := 1.0
@@ -304,7 +381,7 @@ func _spawn_swarm_event(side: int) -> void:
 
 	var count := swarm_enemy_count
 	if stage_profile == "stage3":
-		count = mini(swarm_enemy_count + int(wave_level / 4), 22)
+		count = mini(swarm_enemy_count + int(wave_level / 4), 16)
 	var spawn_positions := _build_swarm_spawn_positions(side, count)
 	for spawn_position in spawn_positions:
 		var direction: Vector2 = (player.global_position - spawn_position).normalized()
@@ -313,7 +390,7 @@ func _spawn_swarm_event(side: int) -> void:
 		_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.SWARM, spawn_position, direction)
 	if stage_profile == "stage3":
 		for _index in 2:
-			_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.HUNTER, _random_edge_position(play_area_rect))
+			_spawn_enemy_of_kind(BHEnemyScript.EnemyKind.HUNTER, _pick_spawn_position())
 	swarm_spawned.emit()
 
 func _get_swarm_source_direction(side: int) -> Vector2:
@@ -364,16 +441,30 @@ func _build_swarm_spawn_positions(side: int, count: int) -> Array[Vector2]:
 		var step: float = 0.0 if count == 1 else available_height / float(count - 1)
 		for i in count:
 			var y: float = play_area_rect.position.y + SWARM_EDGE_MARGIN + step * float(i)
-			positions.append(Vector2(x, y))
+			positions.append(_ensure_spawn_distance(Vector2(x, y)))
 	else:
 		var y: float = play_area_rect.position.y - SWARM_EDGE_MARGIN if side == 2 else play_area_rect.end.y + SWARM_EDGE_MARGIN
 		var available_width: float = max(play_area_rect.size.x - SWARM_EDGE_MARGIN * 2.0, 1.0)
 		var step: float = 0.0 if count == 1 else available_width / float(count - 1)
 		for i in count:
 			var x: float = play_area_rect.position.x + SWARM_EDGE_MARGIN + step * float(i)
-			positions.append(Vector2(x, y))
+			positions.append(_ensure_spawn_distance(Vector2(x, y)))
 
 	return positions
+
+func _pick_spawn_position() -> Vector2:
+	var player_pos: Vector2 = player.global_position
+	for _attempt in SPAWN_POSITION_MAX_ATTEMPTS:
+		var candidate: Vector2 = _random_edge_position(play_area_rect)
+		if candidate.distance_to(player_pos) >= MIN_SPAWN_DISTANCE_FROM_PLAYER:
+			return candidate
+	var angle := randf() * TAU
+	return player_pos + Vector2.from_angle(angle) * MIN_SPAWN_DISTANCE_FROM_PLAYER
+
+func _ensure_spawn_distance(position: Vector2) -> Vector2:
+	if position.distance_to(player.global_position) >= MIN_SPAWN_DISTANCE_FROM_PLAYER:
+		return position
+	return _pick_spawn_position()
 
 func _fallback_swarm_direction(side: int) -> Vector2:
 	match side:
@@ -399,9 +490,23 @@ func _random_edge_position(rect: Rect2) -> Vector2:
 			return Vector2(rect.end.x + 10, randf_range(rect.position.y, rect.end.y))
 
 func _on_player_shot_spawned(shot: Node2D) -> void:
+	if shot.is_in_group("bh_player_attack") and shot.anchor_ref != null:
+		var anchor: Node2D = shot.anchor_ref
+		anchor.add_child(shot)
+		if anchor.has_method("get_combat_center_local"):
+			shot.position = anchor.call("get_combat_center_local")
+		else:
+			shot.position = Vector2.ZERO
+		shot.z_index = 1
+		if shot.has_signal("explosion_created"):
+			shot.explosion_created.connect(_on_molotov_explosion_created)
+		return
+
+	var spawn_global: Vector2 = player.global_position + (shot.position - player.get_weapon_spawn_local())
 	bullet_container.add_child(shot)
-	shot.global_position = shot.position
-	shot.anchor_ref = player
+	shot.global_position = spawn_global
+	if shot.anchor_ref == null:
+		shot.anchor_ref = player
 	if shot.has_signal("explosion_created"):
 		shot.explosion_created.connect(_on_molotov_explosion_created)
 
@@ -425,6 +530,8 @@ func _on_player_leveled_up(new_level: int) -> void:
 
 func _on_player_area_entered(area: Area2D) -> void:
 	if area.is_in_group("bh_xp_pellet"):
+		if area.is_queued_for_deletion():
+			return
 		if area.has_method("get_xp_amount"):
 			var xp_amount: int = int(area.get_xp_amount())
 			run_xp_gained += xp_amount
@@ -448,14 +555,65 @@ func _on_enemy_area_entered(area: Area2D, enemy: Area2D) -> void:
 	if area == player and player.is_alive:
 		enemy.take_damage(999)
 		player.take_hit()
+
+func _resolve_projectile_hits() -> void:
+	if enemy_container == null or not fight_active:
 		return
-	if area.is_in_group("bh_player_bullet") or area.is_in_group("bh_player_attack"):
-		var damage := 1
-		if area.has_method("get_damage"):
-			damage = area.get_damage()
-		enemy.take_damage(damage)
-		if area.is_in_group("bh_player_bullet"):
-			area.queue_free()
+
+	var enemies: Array[Node] = enemy_container.get_children()
+	if enemies.is_empty():
+		return
+
+	_resolve_projectile_hits_in_container(bullet_container, enemies)
+	_resolve_projectile_hits_in_container(player, enemies)
+
+func _resolve_projectile_hits_in_container(container: Node, enemies: Array[Node]) -> void:
+	if container == null:
+		return
+
+	for bullet in container.get_children():
+		if not is_instance_valid(bullet) or not (bullet is Node2D):
+			continue
+		if bullet.is_queued_for_deletion():
+			continue
+		var is_attack: bool = bullet.is_in_group("bh_player_attack")
+		var is_bullet: bool = bullet.is_in_group("bh_player_bullet")
+		if not is_attack and not is_bullet:
+			continue
+
+		var bullet_node := bullet as Node2D
+		var bullet_position: Vector2 = bullet_node.global_position
+		var bullet_radius: float = 6.0
+		if "radius" in bullet:
+			bullet_radius = float(bullet.radius)
+		var damage: int = 1
+		if bullet.has_method("get_damage"):
+			damage = int(bullet.get_damage())
+
+		for enemy_node in enemies:
+			if not is_instance_valid(enemy_node) or enemy_node.is_queued_for_deletion():
+				continue
+			if not (enemy_node is Area2D):
+				continue
+			var enemy := enemy_node as Area2D
+			if "is_dying" in enemy and bool(enemy.is_dying):
+				continue
+			var enemy_radius: float = 16.0
+			if "collision_radius" in enemy:
+				enemy_radius = float(enemy.collision_radius)
+			var hit_distance: float = bullet_radius + enemy_radius
+			if bullet_position.distance_squared_to(enemy.global_position) > hit_distance * hit_distance:
+				continue
+			if is_attack and "_damaged_enemy_ids" in bullet:
+				var damaged_ids: Dictionary = bullet._damaged_enemy_ids
+				var enemy_id: int = enemy.get_instance_id()
+				if damaged_ids.has(enemy_id):
+					continue
+				damaged_ids[enemy_id] = true
+			enemy.take_damage(damage)
+			if is_bullet:
+				bullet_node.queue_free()
+				break
 
 func _on_enemy_died(enemy: Area2D) -> void:
 	kills += 1
@@ -495,6 +653,7 @@ func _spawn_xp_pellet(spawn_position: Vector2, xp_amount: int) -> void:
 	orb.xp_amount = max(xp_amount, 1)
 	orb.add_to_group("bh_xp_pellet")
 	orb.position = pickup_container.to_local(spawn_position)
+	orb.setup_magnet(player)
 	pickup_container.call_deferred("add_child", orb)
 
 func _open_level_up_ui(current_level: int) -> void:
@@ -537,6 +696,8 @@ func _apply_powerup_from_button(button: Button) -> void:
 	_hide_level_up_ui()
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
+	else:
+		player.grant_post_powerup_invincibility()
 
 func _setup_level_up_ui_styles() -> void:
 	var panel_style := StyleBoxFlat.new()
@@ -768,6 +929,8 @@ func _on_skip_button_pressed() -> void:
 	_hide_level_up_ui()
 	if pending_level_ups > 0:
 		call_deferred("_resume_level_up_sequence")
+	else:
+		player.grant_post_powerup_invincibility()
 
 func _try_spawn_levelup_token(spawn_position: Vector2) -> void:
 	if randf() > TOKEN_DROP_CHANCE:
@@ -803,14 +966,13 @@ func _scroll_world(delta: float) -> void:
 
 	var desired_delta := -move_input * world_scroll_speed * delta
 	var clamped_target := _clamp_world_offset(world_offset + desired_delta)
-	var clamped_delta := clamped_target - world_offset
-	var applied_delta := Vector2.ZERO
-	var try_x := Vector2(clamped_delta.x, 0.0)
-	if not _would_player_overlap_obstacle(try_x):
-		applied_delta.x = try_x.x
-	var try_y := Vector2(applied_delta.x, clamped_delta.y)
-	if not _would_player_overlap_obstacle(try_y):
-		applied_delta.y = clamped_delta.y
+	desired_delta = clamped_target - world_offset
+	var applied_delta := BHMovementCollision.resolve_world_scroll_delta(
+		obstacle_container,
+		player.global_position,
+		player_collision_radius,
+		desired_delta
+	)
 	if applied_delta == Vector2.ZERO:
 		return
 
@@ -915,10 +1077,45 @@ func _apply_world_delta(applied_delta: Vector2) -> void:
 	backdrop.set_scroll_offset(world_offset)
 
 func _spawn_stage_obstacles() -> void:
-	if stage_profile == "stage2":
-		_spawn_stage2_placeholder_obstacles()
-		return
+	match stage_profile:
+		"stage2":
+			_spawn_stage2_obstacles()
+		"stage3":
+			_spawn_stage3_obstacles()
+		_:
+			_spawn_stage1_obstacles()
 
+func _spawn_alpha_obstacle(
+	texture_path: String,
+	spawn_position: Vector2,
+	visual_scale: float,
+	fallback_radius: float = 20.0,
+	alpha_cutoff: float = 0.08,
+	collision_shrink: float = 1.0,
+	ground_decal: bool = false
+) -> BHObstacleScript:
+	var texture: Texture2D = _load_texture(texture_path)
+	if texture == null:
+		return null
+	var obstacle = BHObstacleScript.new()
+	obstacle.setup(
+		texture,
+		fallback_radius,
+		visual_scale,
+		1,
+		1,
+		1,
+		0.0,
+		true,
+		alpha_cutoff,
+		collision_shrink,
+		ground_decal
+	)
+	obstacle.position = spawn_position
+	obstacle_container.add_child(obstacle)
+	return obstacle
+
+func _spawn_stage1_obstacles() -> void:
 	var world_center := play_area_rect.get_center()
 	var world_top_left := world_center - world_size_px * 0.5
 	var fountain_texture: Texture2D = _load_texture(fountain_texture_path)
@@ -963,31 +1160,48 @@ func _spawn_stage_obstacles() -> void:
 		pigeon_right_mid.position = world_top_left + Vector2(world_size_px.x * 0.82, world_size_px.y * 0.44)
 		obstacle_container.add_child(pigeon_right_mid)
 
-func _spawn_stage2_placeholder_obstacles() -> void:
-	var pigeon_texture: Texture2D = _load_texture(pigeon_texture_path)
-	if pigeon_texture == null:
-		return
-	var world_center := play_area_rect.get_center()
-	var offsets: Array[Vector2] = [
-		Vector2(0.0, -180.0),
-		Vector2(-260.0, 40.0),
-		Vector2(260.0, 40.0),
-		Vector2(-120.0, 220.0),
-		Vector2(120.0, 220.0),
+func _spawn_stage2_obstacles() -> void:
+	var world_top_left := play_area_rect.get_center() - world_size_px * 0.5
+	var scatter_positions: Array[Vector2] = [
+		Vector2(0.14, 0.20),
+		Vector2(0.30, 0.46),
+		Vector2(0.50, 0.74),
+		Vector2(0.66, 0.28),
+		Vector2(0.80, 0.60),
+		Vector2(0.36, 0.86),
+		Vector2(0.88, 0.38),
 	]
-	for index in offsets.size():
-		var pigeon = BHObstacleScript.new()
-		pigeon.setup(pigeon_texture, 24.0, 2.2, 4, 1, 4, 8.0)
-		pigeon.set_visual_flip_h(index % 2 == 1)
-		pigeon.position = world_center + offsets[index]
-		obstacle_container.add_child(pigeon)
+	for index in scatter_positions.size():
+		var can_texture_path: String = STAGE2_CAN_TEXTURES[index % STAGE2_CAN_TEXTURES.size()]
+		var world_position: Vector2 = world_top_left + Vector2(
+			world_size_px.x * scatter_positions[index].x,
+			world_size_px.y * scatter_positions[index].y
+		)
+		var can := _spawn_alpha_obstacle(can_texture_path, world_position, 0.30, 12.0, 0.08)
+		if can != null and index % 2 == 1:
+			can.set_visual_flip_h(true)
+
+func _spawn_stage3_obstacles() -> void:
+	var world_center := play_area_rect.get_center()
+	var world_top_left := world_center - world_size_px * 0.5
+
+	_spawn_alpha_obstacle(STAGE3_HOLE_TEXTURE, world_center, 1.0, 80.0, 0.06, 1.0, true)
+
+	var cone_positions: Array[Vector2] = [
+		world_top_left + Vector2(world_size_px.x * 0.25, world_size_px.y * 0.25),
+		world_top_left + Vector2(world_size_px.x * 0.75, world_size_px.y * 0.75),
+		world_top_left + Vector2(world_size_px.x * 0.18, world_size_px.y * 0.56),
+		world_top_left + Vector2(world_size_px.x * 0.82, world_size_px.y * 0.44),
+	]
+	for index in cone_positions.size():
+		var cone := _spawn_alpha_obstacle(STAGE3_CONE_TEXTURE, cone_positions[index], 0.42, 12.0, 0.08)
+		if cone != null and index % 2 == 1:
+			cone.set_visual_flip_h(true)
 
 func _apply_initial_run_state() -> void:
 	if initial_run_state.is_empty():
 		return
 
-	player.max_lives = maxi(int(initial_run_state.get("max_lives", player.max_lives)), 1)
-	player.lives = clampi(int(initial_run_state.get("lives", player.max_lives)), 1, player.max_lives)
 	player.level = maxi(int(initial_run_state.get("level", player.level)), 1)
 	player.experience_points = maxi(int(initial_run_state.get("experience_points", player.experience_points)), 0)
 	player.xp_to_next_level = maxi(int(initial_run_state.get("xp_to_next_level", player.xp_to_next_level)), 1)
@@ -1009,8 +1223,6 @@ func _apply_initial_run_state() -> void:
 
 func get_run_state() -> Dictionary:
 	return {
-		"lives": player.lives,
-		"max_lives": player.max_lives,
 		"experience_points": player.experience_points,
 		"level": player.level,
 		"xp_to_next_level": player.xp_to_next_level,
@@ -1054,6 +1266,8 @@ func _collect_nearby_xp_orbs() -> void:
 		if not (orb is Area2D):
 			continue
 		if not orb.is_in_group("bh_xp_pellet"):
+			continue
+		if orb.is_queued_for_deletion():
 			continue
 		var orb_position: Vector2 = (orb as Node2D).global_position
 		if player_position.distance_to(orb_position) > xp_pickup_radius:

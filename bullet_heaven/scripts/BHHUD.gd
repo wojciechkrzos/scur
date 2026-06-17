@@ -1,17 +1,19 @@
 extends CanvasLayer
 
 const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
+const HEART_TEXTURE = preload("res://assets/universal/heart.png")
+
+const HEART_ICON_SIZE := 22.0
 
 @onready var status_panel: PanelContainer = $StatusPanel
-@onready var lives_label: Label = $StatusPanel/StatusMargin/StatusVBox/LivesLabel
+@onready var lives_icons: HBoxContainer = $StatusPanel/StatusMargin/StatusVBox/LivesRow/LivesIcons
 @onready var kills_label: Label = $StatusPanel/StatusMargin/StatusVBox/KillsLabel
 @onready var level_label: Label = $StatusPanel/StatusMargin/StatusVBox/LevelLabel
+@onready var experience_label: Label = $StatusPanel/StatusMargin/StatusVBox/ExperienceLabel
+@onready var experience_bar: ProgressBar = $StatusPanel/StatusMargin/StatusVBox/ExperienceBar
 @onready var timer_panel: PanelContainer = $TimerPanel
 @onready var timer_label: Label = $TimerPanel/TimerMargin/TimerVBox/TimerLabel
 @onready var wave_label: Label = $TimerPanel/TimerMargin/TimerVBox/WaveLabel
-@onready var experience_panel: PanelContainer = $ExperiencePanel
-@onready var experience_label: Label = $ExperiencePanel/ExperienceMargin/ExperienceVBox/ExperienceLabel
-@onready var experience_bar: ProgressBar = $ExperiencePanel/ExperienceMargin/ExperienceVBox/ExperienceBar
 @onready var weapon_panel: MarginContainer = $WeaponPanel
 @onready var weapon_list: VBoxContainer = $WeaponPanel/WeaponMargin/WeaponVBox/WeaponList
 @onready var result_label: Label = $ResultLabel
@@ -21,6 +23,7 @@ var damage_border: Panel
 var result_left_line: ColorRect
 var result_right_line: ColorRect
 var stage_number: int = 1
+var _xp_bar_tween: Tween
 
 func _ready() -> void:
 	_setup_styles()
@@ -40,8 +43,6 @@ func setup(duration: float, lives: int, stage_profile: String = "stage1") -> voi
 	update_kills(0)
 	update_timer(duration)
 	update_wave(1)
-	update_level(1)
-	update_experience(0, 5)
 	result_label.visible = false
 	if result_dimmer != null:
 		result_dimmer.visible = false
@@ -51,7 +52,16 @@ func setup(duration: float, lives: int, stage_profile: String = "stage1") -> voi
 		result_right_line.visible = false
 
 func update_lives(count: int) -> void:
-	lives_label.text = "ŻYCIA  " + "♥ ".repeat(maxi(count, 0))
+	for child in lives_icons.get_children():
+		child.queue_free()
+	for _index in maxi(count, 0):
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(HEART_ICON_SIZE, HEART_ICON_SIZE)
+		icon.texture = HEART_TEXTURE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		lives_icons.add_child(icon)
 
 func update_kills(count: int) -> void:
 	kills_label.text = "ELIMINACJE  %04d" % count
@@ -69,8 +79,16 @@ func update_level(level: int) -> void:
 
 func update_experience(current_xp: int, xp_to_next: int) -> void:
 	experience_label.text = "PD  %02d / %02d" % [current_xp, xp_to_next]
-	experience_bar.max_value = maxf(float(xp_to_next), 1.0)
-	experience_bar.value = clampf(float(current_xp), 0.0, experience_bar.max_value)
+	var max_xp: float = maxf(float(xp_to_next), 1.0)
+	var target_value: float = clampf(float(current_xp), 0.0, max_xp)
+	experience_bar.max_value = max_xp
+	if _xp_bar_tween != null:
+		_xp_bar_tween.kill()
+	if experience_bar.value == target_value:
+		experience_bar.value = target_value
+		return
+	_xp_bar_tween = create_tween()
+	_xp_bar_tween.tween_property(experience_bar, "value", target_value, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func update_pattern(_name_text: String) -> void:
 	pass
@@ -189,12 +207,16 @@ func _setup_styles() -> void:
 	status_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.28, 0.82, 0.68)))
 	timer_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(1.0, 0.66, 0.25)))
 	weapon_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	experience_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	experience_label.add_theme_font_size_override("font_size", 14)
 	var progress_background := StyleBoxFlat.new()
-	progress_background.bg_color = Color(0.04, 0.06, 0.09, 0.92)
-	progress_background.set_corner_radius_all(5)
+	progress_background.bg_color = Color(0.04, 0.06, 0.09, 0.96)
+	progress_background.set_border_width_all(1)
+	progress_background.border_color = Color(0.18, 0.24, 0.34, 1.0)
+	progress_background.set_corner_radius_all(4)
 	var progress_fill := progress_background.duplicate() as StyleBoxFlat
-	progress_fill.bg_color = Color(0.28, 0.78, 1.0, 1.0)
+	progress_fill.bg_color = Color(0.35, 0.82, 1.0, 1.0)
+	progress_fill.border_color = Color(0.55, 0.95, 1.0, 0.6)
+	experience_bar.custom_minimum_size = Vector2(0.0, 10.0)
 	experience_bar.add_theme_stylebox_override("background", progress_background)
 	experience_bar.add_theme_stylebox_override("fill", progress_fill)
 

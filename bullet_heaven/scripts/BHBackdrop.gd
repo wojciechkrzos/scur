@@ -3,8 +3,8 @@ extends Node2D
 var visible_rect: Rect2 = Rect2(0, 0, 800, 600)
 var scroll_offset: Vector2 = Vector2.ZERO
 var world_size: Vector2 = Vector2.ZERO
-var world_border_color: Color = Color(0.82, 0.89, 0.94, 0.92)
-var world_border_thickness: float = 3.0
+var world_border_color: Color = Color(0.0, 0.0, 0.0, 1.0)
+var world_border_thickness: float = 7.0
 @export var background_texture: Texture2D = preload("res://assets/bullet_heaven/background1.png")
 @export var background_color: Color = Color(0.03, 0.05, 0.03, 1.0)
 @export var show_debug_grid: bool = false
@@ -39,6 +39,11 @@ func _draw() -> void:
 		var texture_padding := (texture_size - world_size) * 0.5
 		var texture_rect := Rect2(world_top_left - texture_padding, texture_size)
 		draw_texture_rect(background_texture, texture_rect, false)
+
+	if show_world_border and world_size != Vector2.ZERO:
+		var border_top_left := visible_rect.get_center() - world_size * 0.5 + scroll_offset
+		var border_rect := Rect2(border_top_left, world_size)
+		draw_rect(border_rect, world_border_color, false, world_border_thickness)
 
 	if show_debug_grid:
 		var spacing := 64.0

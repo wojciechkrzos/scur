@@ -86,6 +86,20 @@ func load_debug_config(path: String) -> void:
 
 	debug_skip_gameplay = json.data
 
+func get_bullet_heaven_stage_duration(stage_profile: String) -> float:
+	var defaults := {
+		"stage1": 45.0,
+		"stage2": 60.0,
+		"stage3": 180.0,
+	}
+	var length_config = debug_skip_gameplay.get("bullet_heaven_length_in_seconds", {})
+	if length_config is Dictionary and length_config.has(stage_profile):
+		return maxf(float(length_config.get(stage_profile, defaults.get(stage_profile, 45.0))), 1.0)
+	return float(defaults.get(stage_profile, 45.0))
+
+func is_hitbox_debug_enabled() -> bool:
+	return bool(debug_skip_gameplay.get("show_hitbox_debug", false))
+
 func change_state(new_state: State) -> void:
 	if current_state == new_state:
 		return

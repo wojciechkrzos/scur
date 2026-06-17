@@ -4,5 +4,11 @@
   "stage_2_bullet_heaven": false,
   "stage_2_bullet_hell": false,
   "stage_3_bullet_heaven": false,
-  "stage_3_bullet_hell": false
+  "stage_3_bullet_hell": false,
+  "bullet_heaven_length_in_seconds": {
+	"stage1": 60,
+	"stage2": 90,
+	"stage3": 180
+  },
+  "show_hitbox_debug": false
 }
