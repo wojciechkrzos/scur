@@ -104,7 +104,7 @@ func _handle_focus() -> void:
 	is_focused = Input.is_key_pressed(KEY_SHIFT)
 	focus_indicator.visible = is_focused
 	# W trybie focus hitbox sprite jest bardziej widoczny
-	hitbox_sprite.color = Color(1, 0.8, 0, 1) if is_focused else Color(1, 1, 1, 1)
+	hitbox_sprite.color = Color(1.0, 0.08, 0.08, 1.0) if is_focused else Color(1.0, 1.0, 0.96, 1.0)
 
 
 # ── Strzelanie ───────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ func _create_player_bullet() -> Node2D:
 	var vis = ColorRect.new()
 	vis.size = Vector2(4, 8)
 	vis.position = Vector2(-2, -4)
-	vis.color = Color(0.8, 1.0, 0.4, 1.0)
+	vis.color = Color(1.0, 0.95, 0.86, 1.0)
 	b.add_child(vis)
 	
 	# Warstwa kolizji: gracz strzela = warstwa 3, trafia warstwę 4 (boss)

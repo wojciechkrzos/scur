@@ -5,6 +5,15 @@
 [node name="EndingUnlocked" type="CanvasLayer" unique_id=577238895]
 script = ExtResource("1_mxobf")
 
+[node name="Dimmer" type="ColorRect" parent="." unique_id=117223940]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.018, 0, 0.006, 0.88)
+
 [node name="CenterContainer" type="CenterContainer" parent="." unique_id=1340088383]
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,7 +22,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="Panel" parent="CenterContainer" unique_id=267466459]
-custom_minimum_size = Vector2(400, 250)
+custom_minimum_size = Vector2(620, 360)
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel" unique_id=703178204]
@@ -23,18 +32,36 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 18
 alignment = 1
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/Panel/VBoxContainer" unique_id=1542651594]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Zwycięstwo!"
+theme_override_colors/font_color = Color(1, 0.96, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0, 0.01, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 48
+text = "ZWYCIESTWO"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="EndingLabel" type="Label" parent="CenterContainer/Panel/VBoxContainer" unique_id=609612086]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="DetailLabel" type="Label" parent="CenterContainer/Panel/VBoxContainer" unique_id=130985638]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.86, 0.8, 1)
+theme_override_font_sizes/font_size = 21
+text = "..."
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="ContinueButton" type="Button" parent="CenterContainer/Panel/VBoxContainer" unique_id=1877792190]
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
-text = "Kontynuuj"
+text = "KONTYNUUJ"

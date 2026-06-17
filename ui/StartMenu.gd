@@ -9,6 +9,7 @@ signal start_pressed
 @onready var options_button: Button = $Root/MenuPanel/PanelMargin/MainVBox/OptionsButton
 @onready var credits_button: Button = $Root/MenuPanel/PanelMargin/MainVBox/CreditsButton
 @onready var exit_button: Button = $Root/MenuPanel/PanelMargin/MainVBox/ExitButton
+@onready var score_log_label: Label = $Root/MenuPanel/PanelMargin/MainVBox/ScoreLogLabel
 @onready var options_back_button: Button = $Root/MenuPanel/PanelMargin/OptionsVBox/BackButton
 @onready var credits_back_button: Button = $Root/MenuPanel/PanelMargin/CreditsVBox/BackButton
 @onready var music_slider: HSlider = $Root/MenuPanel/PanelMargin/OptionsVBox/MusicRow/MusicSlider
@@ -28,6 +29,7 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx_changed)
 	_apply_pixel_styles()
 	_sync_audio_sliders()
+	_update_score_log()
 	_show_main_panel()
 
 
@@ -58,7 +60,21 @@ func _show_main_panel() -> void:
 	main_panel.visible = true
 	options_panel.visible = false
 	credits_panel.visible = false
+	_update_score_log()
 	start_button.grab_focus()
+
+func _update_score_log() -> void:
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state == null or not game_state.has_method("get_score_log"):
+		score_log_label.text = "NAJLEPSZY WYNIK\n000000  |  0 ELIM.  |  0.0 MIN  |  0 PD"
+		return
+	var log: Dictionary = game_state.get_score_log()
+	score_log_label.text = "NAJLEPSZY WYNIK\n%06d  |  %d ELIM.  |  %.1f MIN  |  %d PD" % [
+		int(log.get("best_total_score", 0)),
+		int(log.get("best_enemies_killed", 0)),
+		float(log.get("best_minutes_played", 0.0)),
+		int(log.get("best_xp_gained", 0)),
+	]
 
 
 func _sync_audio_sliders() -> void:
@@ -122,3 +138,6 @@ func _apply_pixel_styles() -> void:
 		button.add_theme_stylebox_override("focus", hover)
 		button.add_theme_stylebox_override("pressed", pressed)
 		button.add_theme_font_size_override("font_size", 25)
+	score_log_label.add_theme_color_override("font_color", Color(0.94, 0.9, 0.86, 1.0))
+	score_log_label.add_theme_color_override("font_outline_color", Color(0.11, 0.0, 0.01, 1.0))
+	score_log_label.add_theme_constant_override("outline_size", 4)

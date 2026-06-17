@@ -57,6 +57,7 @@ const STAGE_CONFIGS := {
 var fight_active: bool = false
 var time_remaining: float = 0.0
 var kills: int = 0
+var run_xp_gained: int = 0
 var wave_level: int = 1
 var current_spawn_interval: float = 0.6
 var play_area_rect: Rect2 = Rect2(0, 0, 800, 600)
@@ -133,6 +134,7 @@ func start_fight() -> void:
 	fight_active = true
 	time_remaining = stage_duration
 	kills = 0
+	run_xp_gained = 0
 	wave_level = 1
 	current_spawn_interval = base_spawn_interval
 	swarm_event_elapsed = 0.0
@@ -424,7 +426,9 @@ func _on_player_leveled_up(new_level: int) -> void:
 func _on_player_area_entered(area: Area2D) -> void:
 	if area.is_in_group("bh_xp_pellet"):
 		if area.has_method("get_xp_amount"):
-			player.add_experience(area.get_xp_amount())
+			var xp_amount: int = int(area.get_xp_amount())
+			run_xp_gained += xp_amount
+			player.add_experience(xp_amount)
 		area.queue_free()
 		return
 
@@ -477,6 +481,10 @@ func _end_fight(result: String) -> void:
 		bullet.queue_free()
 
 	hud.show_result(result)
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null and game_state.has_method("record_run_score"):
+		var minutes_played := maxf(stage_duration - time_remaining, 0.0) / 60.0
+		game_state.record_run_score(kills, minutes_played, run_xp_gained)
 	if audio_controller != null:
 		audio_controller.play_music("victory" if result == "win" else "defeat")
 	await get_tree().create_timer(2.0).timeout
@@ -1051,5 +1059,7 @@ func _collect_nearby_xp_orbs() -> void:
 		if player_position.distance_to(orb_position) > xp_pickup_radius:
 			continue
 		if orb.has_method("get_xp_amount"):
-			player.add_experience(orb.get_xp_amount())
+			var xp_amount: int = int(orb.get_xp_amount())
+			run_xp_gained += xp_amount
+			player.add_experience(xp_amount)
 		orb.queue_free()

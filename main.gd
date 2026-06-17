@@ -78,6 +78,9 @@ func apply_ui_to_menu():
 func return_to_menu():
 	get_tree().paused = false
 	pause_menu.visible = false
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("stop_music"):
+		audio_manager.stop_music()
 	if dialogue_box.has_method("stop_dialogue"):
 		dialogue_box.stop_dialogue()
 
@@ -96,6 +99,8 @@ func return_to_menu():
 		start_menu.start_pressed.connect(_on_start_pressed)
 	else:
 		start_menu.visible = true
+		if start_menu.has_method("_update_score_log"):
+			start_menu._update_score_log()
 
 	if menu_music_player != null and not menu_music_player.playing:
 		menu_music_player.play()

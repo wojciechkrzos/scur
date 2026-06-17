@@ -32,7 +32,7 @@ offset_left = -25.0
 offset_top = -25.0
 offset_right = 25.0
 offset_bottom = 25.0
-color = Color(0.76115644, 0, 0.30661315, 1)
+color = Color(0.85, 0.02, 0.06, 1)
 
 [node name="BossHP" type="ProgressBar" parent="Boss" unique_id=601183865]
 offset_left = -50.0
@@ -53,6 +53,7 @@ offset_left = -12.0
 offset_top = -12.0
 offset_right = 13.0
 offset_bottom = 13.0
+color = Color(1, 0.96, 0.9, 0.88)
 
 [node name="Player" type="Area2D" parent="." unique_id=489216337]
 script = ExtResource("3_dcc1e")
@@ -65,7 +66,7 @@ debug_color = Color(0.654902, 0.003921569, 0.96862745, 0.70980394)
 [node name="HitboxSprite" type="ColorRect" parent="Player" unique_id=495439396]
 offset_right = 25.0
 offset_bottom = 25.0
-color = Color(0.8785174, 0.0006328231, 0.8809489, 1)
+color = Color(1, 0.98, 0.92, 1)
 
 [node name="FocusIndicator" type="Node2D" parent="Player" unique_id=1840478201]
 script = ExtResource("5_focus")
@@ -84,7 +85,7 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 14.0
 offset_bottom = 14.0
-color = Color(0, 0.5527905, 0.5527904, 1)
+color = Color(1, 0.02, 0.04, 1)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1954525983]
 script = ExtResource("4_sakb4")

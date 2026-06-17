@@ -2,6 +2,8 @@ extends Node
 
 signal state_changed(old_state, new_state)
 
+const SCORE_PATH := "user://score_log.cfg"
+
 enum State {
 	MENU,
 	BULLET_HEAVEN,
@@ -22,6 +24,44 @@ var bullet_heaven_run_state: Dictionary = {}
 var debug_skip_gameplay: Dictionary = {}
 var plot_choices: Dictionary = {}
 var unlocked_endings: Dictionary = {}
+var score_log := {
+	"best_total_score": 0,
+	"best_enemies_killed": 0,
+	"best_minutes_played": 0.0,
+	"best_xp_gained": 0,
+	"runs_played": 0,
+}
+
+func _ready() -> void:
+	load_score_log()
+
+func load_score_log() -> void:
+	var config := ConfigFile.new()
+	if config.load(SCORE_PATH) != OK:
+		return
+	score_log["best_total_score"] = int(config.get_value("scores", "best_total_score", score_log["best_total_score"]))
+	score_log["best_enemies_killed"] = int(config.get_value("scores", "best_enemies_killed", score_log["best_enemies_killed"]))
+	score_log["best_minutes_played"] = float(config.get_value("scores", "best_minutes_played", score_log["best_minutes_played"]))
+	score_log["best_xp_gained"] = int(config.get_value("scores", "best_xp_gained", score_log["best_xp_gained"]))
+	score_log["runs_played"] = int(config.get_value("scores", "runs_played", score_log["runs_played"]))
+
+func record_run_score(enemies_killed: int, minutes_played: float, xp_gained: int, bonus_score: int = 0) -> void:
+	var total_score := enemies_killed * 100 + int(round(minutes_played * 60.0)) * 5 + xp_gained * 25 + bonus_score
+	score_log["best_total_score"] = maxi(int(score_log.get("best_total_score", 0)), total_score)
+	score_log["best_enemies_killed"] = maxi(int(score_log.get("best_enemies_killed", 0)), maxi(enemies_killed, 0))
+	score_log["best_minutes_played"] = maxf(float(score_log.get("best_minutes_played", 0.0)), maxf(minutes_played, 0.0))
+	score_log["best_xp_gained"] = maxi(int(score_log.get("best_xp_gained", 0)), maxi(xp_gained, 0))
+	score_log["runs_played"] = int(score_log.get("runs_played", 0)) + 1
+	_save_score_log()
+
+func get_score_log() -> Dictionary:
+	return score_log.duplicate(true)
+
+func _save_score_log() -> void:
+	var config := ConfigFile.new()
+	for key in score_log.keys():
+		config.set_value("scores", String(key), score_log[key])
+	config.save(SCORE_PATH)
 
 func unlock_ending(id: String):
 	unlocked_endings[id] = true
