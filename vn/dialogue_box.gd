@@ -18,6 +18,8 @@ signal dialogue_finished(result)
 @export var text_speed: float = 50.0
 
 const VN_MUSIC_PATH := "res://assets/audio/music/vn_dark_ambient.wav"
+const VN_MELLOW_MUSIC_PATH := "res://assets/audio/music/vn_mellow_dark.wav"
+const TYPEWRITER_SFX_PATH := "res://assets/audio/sfx/dialogue_blip.wav"
 
 var shake_effect: ShakeEffect
 
@@ -35,6 +37,9 @@ var id_to_index := {} #mapowanie id dialogu na indeksy
 var current_dialogue_id: String = ""
 var music_player: AudioStreamPlayer
 var music_tween: Tween
+var typewriter_player: AudioStreamPlayer
+var last_blip_character_count: int = 0
+var blip_step: int = 2
 
 const DIALOGUE_BACKGROUNDS := {
 	"tutorial": "res://assets/vn/background_tutorial.png",
@@ -93,6 +98,7 @@ func start_dialogue(dialogue_lines: Array) -> void:
 	if dialogue_lines.is_empty():
 		return
 
+	_ensure_music_player()
 	lines = dialogue_lines
 	current_line_index = 0
 	_apply_dialogue_background()
@@ -139,6 +145,7 @@ func _process(delta: float) -> void:
 	visible_characters_progress += current_speed * delta
 	visible_characters_count = int(visible_characters_progress)
 	dialogue_text.visible_characters = visible_characters_count
+	_play_typewriter_blip()
 
 	if visible_characters_count >= current_text.length():
 		_finish_typing()
@@ -260,6 +267,7 @@ func _show_current_line() -> void:
 	
 	visible_characters_count = 0
 	visible_characters_progress = 0.0
+	last_blip_character_count = 0
 	is_typing = true
 
 func _finish_typing() -> void:
@@ -342,18 +350,75 @@ func stop_dialogue() -> void:
 		music_player.stop()
 
 func _setup_music() -> void:
-	music_player = AudioStreamPlayer.new()
-	music_player.name = "VNMusicPlayer"
-	music_player.bus = &"Music"
-	music_player.volume_db = -40.0
-	if ResourceLoader.exists(VN_MUSIC_PATH):
-		var stream := load(VN_MUSIC_PATH) as AudioStream
-		if stream is AudioStreamWAV:
-			(stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
-		music_player.stream = stream
-	add_child(music_player)
+	_ensure_music_player()
+
+func _ensure_music_player() -> void:
+	if music_player != null and is_instance_valid(music_player):
+		if music_player.stream == null:
+			_assign_music_stream()
+	else:
+		music_player = AudioStreamPlayer.new()
+		music_player.name = "VNMusicPlayer"
+		music_player.bus = &"Music"
+		music_player.process_mode = Node.PROCESS_MODE_ALWAYS
+		music_player.volume_db = -40.0
+		add_child(music_player)
+		_assign_music_stream()
+
+	if typewriter_player != null and is_instance_valid(typewriter_player):
+		return
+	typewriter_player = AudioStreamPlayer.new()
+	typewriter_player.name = "TypewriterBlipPlayer"
+	typewriter_player.bus = &"SFX"
+	typewriter_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	typewriter_player.volume_db = -12.0
+	typewriter_player.max_polyphony = 6
+	if ResourceLoader.exists(TYPEWRITER_SFX_PATH):
+		typewriter_player.stream = load(TYPEWRITER_SFX_PATH) as AudioStream
+	add_child(typewriter_player)
+
+func _assign_music_stream() -> void:
+	if music_player == null:
+		return
+	var music_path := _get_vn_music_path()
+	if not ResourceLoader.exists(music_path):
+		return
+	var stream := load(music_path) as AudioStream
+	if stream is AudioStreamWAV:
+		(stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+	music_player.stream = stream
+
+func _get_vn_music_path() -> String:
+	return VN_MELLOW_MUSIC_PATH if ResourceLoader.exists(VN_MELLOW_MUSIC_PATH) else VN_MUSIC_PATH
+
+func _play_typewriter_blip() -> void:
+	if typewriter_player == null or typewriter_player.stream == null:
+		return
+	if visible_characters_count <= last_blip_character_count:
+		return
+	if visible_characters_count % blip_step != 0:
+		return
+	if current_text.is_empty():
+		return
+	var char_index := clampi(visible_characters_count - 1, 0, current_text.length() - 1)
+	if current_text.substr(char_index, 1) != " ":
+		typewriter_player.pitch_scale = randf_range(0.92, 1.08)
+		typewriter_player.play()
+	last_blip_character_count = visible_characters_count
 
 func _fade_music_in() -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("play_music_path"):
+		if audio_manager.has_method("play_procedural_music"):
+			if audio_manager.play_procedural_music("vn_mellow", 2.0, 1.0):
+				if audio_manager.has_method("get_music_player"):
+					music_player = audio_manager.get_music_player()
+				return
+		var music_path := _get_vn_music_path()
+		if audio_manager.play_music_path(music_path, true, 4.0, 1.0):
+			if audio_manager.has_method("get_music_player"):
+				music_player = audio_manager.get_music_player()
+			return
 	if music_player == null or music_player.stream == null:
 		return
 	if music_tween != null and music_tween.is_valid():
@@ -362,9 +427,13 @@ func _fade_music_in() -> void:
 	if not music_player.playing:
 		music_player.play()
 	music_tween = create_tween()
-	music_tween.tween_property(music_player, "volume_db", -8.0, 1.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	music_tween.tween_property(music_player, "volume_db", 4.0, 1.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func _fade_music_out() -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("stop_music") and audio_manager.has_method("get_music_player") and music_player == audio_manager.get_music_player():
+		audio_manager.stop_music(0.75)
+		return
 	if music_player == null or not music_player.playing:
 		return
 	if music_tween != null and music_tween.is_valid():

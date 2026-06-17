@@ -516,6 +516,7 @@ func _fire_delayed_arc(direction: Vector2, start_speed: float, min_speed: float,
 
 func _create_bullet(direction: Vector2, speed: float, color: Color) -> Node2D:
 	var b = BulletScript.new()
+	var palette_color := _to_hell_palette(color)
 	
 	# !!! KLUCZOWE: Przekazanie play_area, żeby pociski nie wisiały w pamięci w nieskończoność
 	b.play_area = play_area
@@ -531,14 +532,14 @@ func _create_bullet(direction: Vector2, speed: float, color: Color) -> Node2D:
 	var vis = ColorRect.new()
 	vis.size = Vector2(10, 10)
 	vis.position = Vector2(-5, -5)
-	vis.color = color
+	vis.color = palette_color
 	b.add_child(vis)
 	
 	# Jądro (jasny środek — klasyczny styl Touhou)
 	var core = ColorRect.new()
 	core.size = Vector2(4, 4)
 	core.position = Vector2(-2, -2)
-	core.color = Color(1, 1, 1, 0.9)
+	core.color = Color(1.0, 0.98, 0.92, 0.95)
 	b.add_child(core)
 	
 	b.position = position
@@ -550,6 +551,16 @@ func _create_bullet(direction: Vector2, speed: float, color: Color) -> Node2D:
 	b.set_meta("speed", speed)
 	
 	return b
+
+func _to_hell_palette(source: Color) -> Color:
+	var luminance := source.r * 0.3 + source.g * 0.59 + source.b * 0.11
+	if luminance > 0.72:
+		return Color(1.0, 0.98, 0.9, 0.96)
+	if source.r >= source.g and source.r >= source.b:
+		return Color(1.0, 0.04, 0.08, 0.98)
+	if source.b > source.r:
+		return Color(0.55, 0.0, 0.04, 0.92)
+	return Color(0.92, 0.12, 0.12, 0.94)
 
 
 # ── Obrażenia ────────────────────────────────────────────────────────────────

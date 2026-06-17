@@ -113,6 +113,9 @@ const POWERUP_ORDER: Array[int] = [
 	PowerupId.WEAPON_1,
 	PowerupId.WEAPON_2,
 	PowerupId.WEAPON_3,
+	PowerupId.WEAPON_4,
+	PowerupId.WEAPON_5,
+	PowerupId.WEAPON_6,
 	PowerupId.SPEEDUP,
 	PowerupId.SHIELD,
 ]
@@ -156,16 +159,27 @@ static func get_powerup_icon(powerup_id: int) -> Texture2D:
 	return load(path) as Texture2D if not path.is_empty() else null
 
 static func get_random_choices(count: int, weapon_levels: Dictionary = {}) -> Array[int]:
-	var options: Array[int] = []
+	var new_weapons: Array[int] = []
+	var upgrades_and_utility: Array[int] = []
 	for powerup_id in POWERUP_ORDER:
 		var data: Dictionary = get_powerup_data(powerup_id)
 		if String(data.get("kind", "")) == "weapon":
 			var weapon_id: int = int(data.get("weapon_id", -1))
-			if int(weapon_levels.get(weapon_id, 0)) >= MAX_WEAPON_LEVEL:
+			var current_level := int(weapon_levels.get(weapon_id, 0))
+			if current_level >= MAX_WEAPON_LEVEL:
 				continue
-		options.append(powerup_id)
+			if current_level <= 0:
+				new_weapons.append(powerup_id)
+			else:
+				upgrades_and_utility.append(powerup_id)
+			continue
+		upgrades_and_utility.append(powerup_id)
 
-	options.shuffle()
+	new_weapons.shuffle()
+	upgrades_and_utility.shuffle()
+	var options: Array[int] = []
+	options.append_array(new_weapons)
+	options.append_array(upgrades_and_utility)
 	return options.slice(0, mini(count, options.size()))
 
 static func get_upgrade_summary(weapon_id: int, current_level: int) -> String:

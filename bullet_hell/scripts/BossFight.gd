@@ -104,6 +104,7 @@ var fight_active: bool = false
 var play_area_rect: Rect2 = Rect2(20, 20, PLAY_AREA_SIZE.x, PLAY_AREA_SIZE.y)
 var _intro_active: bool = false
 var _intro_token: int = 0
+var elapsed_fight_time: float = 0.0
 
 var _objective_intro_layer: CanvasLayer = null
 var _objective_intro_root: Control = null
@@ -134,9 +135,10 @@ func start_fight(config: Dictionary) -> void:
 	if config.has("move_speed") and boss != null:
 		boss.move_speed = float(config.get("move_speed"))
 	time_remaining = time_limit
+	elapsed_fight_time = 0.0
 	fight_active  = false
-	if audio_controller != null:
-		audio_controller.play_music("theme")
+	_ensure_audio_controller()
+	audio_controller.play_music("bullet_hell")
 	var viewport_rect := get_viewport_rect()
 	var play_top_left := (viewport_rect.size - PLAY_AREA_SIZE) * 0.5
 	play_area_rect = Rect2(play_top_left, PLAY_AREA_SIZE)
@@ -152,9 +154,7 @@ func start_fight(config: Dictionary) -> void:
 
 
 func _ready() -> void:
-	audio_controller = CombatAudioScript.new()
-	audio_controller.name = "BulletHellAudio"
-	add_child(audio_controller)
+	_ensure_audio_controller()
 	boss.boss_died.connect(_on_boss_died)
 	boss.bullet_spawned.connect(_on_boss_bullet_spawned)
 	player.player_died.connect(_on_player_died)
@@ -167,10 +167,18 @@ func _ready() -> void:
 
 	_build_objective_intro_overlay()
 
+func _ensure_audio_controller() -> void:
+	if audio_controller != null and is_instance_valid(audio_controller):
+		return
+	audio_controller = CombatAudioScript.new()
+	audio_controller.name = "BulletHellAudio"
+	add_child(audio_controller)
+
 
 func _process(delta: float) -> void:
 	if not fight_active:
 		return
+	elapsed_fight_time += delta
 	
 	# Timer tylko w trybie SURVIVE
 	if win_condition == WinCondition.SURVIVE:
@@ -387,6 +395,9 @@ func _end_fight(result: String) -> void:
 			child.queue_free()
 	
 	hud.show_result(result)
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null and game_state.has_method("record_run_score"):
+		game_state.record_run_score(0, elapsed_fight_time / 60.0, 0, score)
 	
 	# Poczekaj chwilę zanim wyemitujesz sygnał (żeby gracz zobaczył wynik)
 	await get_tree().create_timer(2.5).timeout
@@ -405,7 +416,7 @@ func _draw_play_area() -> void:
 
 	# 1. Głębokie, ciemne tło samego pola walki
 	var border = ColorRect.new()
-	border.color = Color(0.03, 0.03, 0.06, 0.34)
+	border.color = Color(0.015, 0.0, 0.006, 0.38)
 	border.size = play_area_rect.size
 	border.position = play_area_rect.position
 	border.set_meta("play_area_visual", true)
@@ -419,9 +430,9 @@ func _draw_play_area() -> void:
 	frame_style.border_width_top = 3
 	frame_style.border_width_right = 3
 	frame_style.border_width_bottom = 3
-	frame_style.border_color = Color(0.0, 0.7, 1.0, 0.8) # Elektryczny błękit
+	frame_style.border_color = Color(0.94, 0.02, 0.07, 0.88)
 	frame_style.shadow_size = 10
-	frame_style.shadow_color = Color(0.0, 0.4, 0.9, 0.3)
+	frame_style.shadow_color = Color(0.9, 0.0, 0.04, 0.38)
 	
 	var frame = Panel.new()
 	frame.add_theme_stylebox_override("panel", frame_style)
@@ -431,7 +442,7 @@ func _draw_play_area() -> void:
 	add_child(frame)
 	move_child(frame, 1)
 	var frame_tween := frame.create_tween().set_loops()
-	frame_tween.tween_property(frame, "modulate", Color(0.55, 0.85, 1.0, 0.72), 0.9).set_trans(Tween.TRANS_SINE)
+	frame_tween.tween_property(frame, "modulate", Color(1.0, 0.34, 0.34, 0.78), 0.9).set_trans(Tween.TRANS_SINE)
 	frame_tween.tween_property(frame, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.9).set_trans(Tween.TRANS_SINE)
 
 	# 3. GENIALNY MASKER: Tworzymy czarne zasłony na krawędziach ekranu,
@@ -448,7 +459,7 @@ func _draw_play_area() -> void:
 	
 	for m_rect in masks:
 		var mask = ColorRect.new()
-		mask.color = Color(0.08, 0.08, 0.1, 1.0) # Kolor tła aplikacji (poza grą)
+		mask.color = Color(0.025, 0.0, 0.006, 1.0)
 		mask.size = m_rect.size
 		mask.position = m_rect.position
 		mask.set_meta("play_area_visual", true)

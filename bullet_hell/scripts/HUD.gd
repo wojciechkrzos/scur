@@ -20,7 +20,7 @@ func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	if result_dimmer == null:
 		result_dimmer = ColorRect.new()
 		result_dimmer.anchors_preset = Control.PRESET_FULL_RECT
-		result_dimmer.color = Color(0.01, 0.01, 0.03, 0.75)
+		result_dimmer.color = Color(0.02, 0.0, 0.006, 0.82)
 		result_dimmer.visible = false
 		add_child(result_dimmer)
 		move_child(result_dimmer, 0)
@@ -28,9 +28,9 @@ func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	win_label.anchors_preset = Control.PRESET_CENTER
 	win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	win_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	win_label.add_theme_font_size_override("font_size", 44)
-	win_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	win_label.add_theme_constant_override("outline_size", 10)
+	win_label.add_theme_font_size_override("font_size", 58)
+	win_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
+	win_label.add_theme_constant_override("outline_size", 14)
 	win_label.visible = false
 	result_dimmer.visible = false
 	
@@ -40,12 +40,12 @@ func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	boss_hp_bar.show_percentage = false
 	
 	var sb_bg = StyleBoxFlat.new()
-	sb_bg.bg_color = Color(0.08, 0.08, 0.12, 0.8)
+	sb_bg.bg_color = Color(0.035, 0.0, 0.006, 0.9)
 	sb_bg.corner_radius_top_left = 3
 	sb_bg.corner_radius_bottom_left = 3
 	
 	var sb_fill = StyleBoxFlat.new()
-	sb_fill.bg_color = Color(0.95, 0.0, 0.35)
+	sb_fill.bg_color = Color(0.95, 0.02, 0.06)
 	sb_fill.corner_radius_top_left = 3
 	sb_fill.corner_radius_bottom_left = 3
 	
@@ -62,9 +62,9 @@ func setup(win_condition: int, _time_limit: float, boss_max_hp: float) -> void:
 	_apply_text_style(boss_hp_label, 16)
 	
 	if win_condition == 0: # SURVIVE
-		timer_label.modulate = Color(0.3, 0.9, 0.4)
+		timer_label.modulate = Color(1.0, 0.98, 0.92)
 	else: # DAMAGE
-		timer_label.modulate = Color(1.0, 0.6, 0.1)
+		timer_label.modulate = Color(1.0, 0.16, 0.16)
 	
 	update_lives(3)
 
@@ -138,8 +138,13 @@ func show_result(result: String) -> void:
 	if result_dimmer != null:
 		result_dimmer.visible = true
 	if result == "win":
-		win_label.text = "✦ ZWYCIĘSTWO ✦"
-		win_label.modulate = Color(0.3, 1.0, 0.5)
+		win_label.text = "ZWYCIĘSTWO\nSYSTEM PĘKŁ"
+		win_label.modulate = Color(1.0, 0.97, 0.88)
 	else:
-		win_label.text = "✦ DERATYZACJA ✦"
-		win_label.modulate = Color(1.0, 0.2, 0.2)
+		win_label.text = "DERATYZACJA\nPRZERWANA"
+		win_label.modulate = Color(1.0, 0.05, 0.08)
+	win_label.modulate.a = 0.0
+	win_label.scale = Vector2(0.88, 0.88)
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(win_label, "modulate:a", 1.0, 0.45)
+	tween.tween_property(win_label, "scale", Vector2.ONE, 0.55).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
