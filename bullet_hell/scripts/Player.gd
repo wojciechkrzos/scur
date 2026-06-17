@@ -8,6 +8,7 @@ extends Area2D
 const PlayerBulletScript = preload("res://bullet_hell/scripts/PlayerBullet.gd")
 
 signal player_died
+signal player_hit(remaining_lives: int)
 signal player_scored(points: int)
 signal bullet_spawned(bullet: Node2D)
 
@@ -170,6 +171,7 @@ func take_hit() -> void:
 		return
 	
 	lives -= 1
+	player_hit.emit(maxi(lives, 0))
 	
 	if lives <= 0:
 		is_alive = false

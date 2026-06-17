@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bere34i07cfke" path="res://bullet_hell/scripts/Boss.gd" id="2_4yc0g"]
 [ext_resource type="Script" uid="uid://buds1hc7l56ao" path="res://bullet_hell/scripts/Player.gd" id="3_dcc1e"]
 [ext_resource type="Script" uid="uid://4s6qqe13flp4" path="res://bullet_hell/scripts/HUD.gd" id="4_sakb4"]
+[ext_resource type="Script" path="res://bullet_hell/scripts/FocusIndicator.gd" id="5_focus"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lowkq"]
 size = Vector2(25, 25)
@@ -67,6 +68,7 @@ offset_bottom = 25.0
 color = Color(0.8785174, 0.0006328231, 0.8809489, 1)
 
 [node name="FocusIndicator" type="Node2D" parent="Player" unique_id=1840478201]
+script = ExtResource("5_focus")
 
 [node name="Sprite2D" type="Sprite2D" parent="Player/FocusIndicator" unique_id=107769203]
 

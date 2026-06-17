@@ -25,18 +25,197 @@ texture = ExtResource("2_start_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="StartButton" type="Button" parent="Root"]
+[node name="Shade" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.015, 0.005, 0.025, 0.3)
+
+[node name="MenuPanel" type="PanelContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -120.0
-offset_top = 180.0
-offset_right = 120.0
-offset_bottom = 252.0
+offset_left = -250.0
+offset_top = -80.0
+offset_right = 250.0
+offset_bottom = 520.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 48
-text = "Start"
+
+[node name="PanelMargin" type="MarginContainer" parent="Root/MenuPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 28
+
+[node name="MainVBox" type="VBoxContainer" parent="Root/MenuPanel/PanelMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.46, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.01, 0.02, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 46
+text = "SCUR"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.74, 0.82, 1)
+text = "DERATYZACJA BEZ LITOŚCI"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "START"
+
+[node name="OptionsButton" type="Button" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "OPCJE"
+
+[node name="CreditsButton" type="Button" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "CREDITS"
+
+[node name="ExitButton" type="Button" parent="Root/MenuPanel/PanelMargin/MainVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "WYJDŹ"
+
+[node name="OptionsVBox" type="VBoxContainer" parent="Root/MenuPanel/PanelMargin"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Title" type="Label" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.46, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.01, 0.02, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+text = "OPCJE"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.7, 0.78, 1)
+text = "Ustawienia zapisują się automatycznie"
+horizontal_alignment = 1
+
+[node name="OptionsSpacer" type="Control" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+
+[node name="MusicRow" type="HBoxContainer" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="MusicLabel" type="Label" parent="Root/MenuPanel/PanelMargin/OptionsVBox/MusicRow"]
+custom_minimum_size = Vector2(118, 0)
+layout_mode = 2
+text = "MUZYKA"
+
+[node name="MusicSlider" type="HSlider" parent="Root/MenuPanel/PanelMargin/OptionsVBox/MusicRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 75.0
+
+[node name="MusicValue" type="Label" parent="Root/MenuPanel/PanelMargin/OptionsVBox/MusicRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+text = "75%"
+horizontal_alignment = 2
+
+[node name="SFXRow" type="HBoxContainer" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SFXLabel" type="Label" parent="Root/MenuPanel/PanelMargin/OptionsVBox/SFXRow"]
+custom_minimum_size = Vector2(118, 0)
+layout_mode = 2
+text = "EFEKTY"
+
+[node name="SFXSlider" type="HSlider" parent="Root/MenuPanel/PanelMargin/OptionsVBox/SFXRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 50.0
+
+[node name="SFXValue" type="Label" parent="Root/MenuPanel/PanelMargin/OptionsVBox/SFXRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+text = "50%"
+horizontal_alignment = 2
+
+[node name="OptionsBottomSpacer" type="Control" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="Root/MenuPanel/PanelMargin/OptionsVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "WRÓĆ"
+
+[node name="CreditsVBox" type="VBoxContainer" parent="Root/MenuPanel/PanelMargin"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.46, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.01, 0.02, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+text = "CREDITS"
+horizontal_alignment = 1
+
+[node name="CreditsSpacer" type="Control" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+
+[node name="Wojciech" type="Label" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 26
+text = "Wojciech Krzos"
+horizontal_alignment = 1
+
+[node name="Natalia" type="Label" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 26
+text = "Natalia Malinowska"
+horizontal_alignment = 1
+
+[node name="Year" type="Label" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.62, 0.34, 1)
+theme_override_font_sizes/font_size = 23
+text = "2026"
+horizontal_alignment = 1
+
+[node name="CreditsBottomSpacer" type="Control" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="Root/MenuPanel/PanelMargin/CreditsVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "WRÓĆ"

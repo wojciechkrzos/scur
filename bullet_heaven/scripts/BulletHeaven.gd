@@ -70,7 +70,6 @@ var pending_level_ups: int = 0
 var current_powerup_choices: Array[int] = []
 var stage_profile: String = "stage1"
 var initial_run_state: Dictionary = {}
-var placeholder_square_texture: Texture2D = null
 var level_up_dimmer: ColorRect
 var swarm_warning_indicator
 var audio_controller
@@ -183,6 +182,7 @@ func start_fight() -> void:
 
 func _ready() -> void:
 	player.player_died.connect(_on_player_died)
+	player.player_hit.connect(_on_player_hit)
 	player.shot_spawned.connect(_on_player_shot_spawned)
 	player.experience_changed.connect(_on_player_experience_changed)
 	player.leveled_up.connect(_on_player_leveled_up)
@@ -461,6 +461,9 @@ func _on_enemy_died(enemy: Area2D) -> void:
 func _on_player_died() -> void:
 	_end_fight("lose")
 
+func _on_player_hit(_remaining_lives: int) -> void:
+	hud.play_damage_feedback()
+
 func _end_fight(result: String) -> void:
 	if not fight_active:
 		return
@@ -490,7 +493,7 @@ func _open_level_up_ui(current_level: int) -> void:
 	if current_powerup_choices.is_empty():
 		current_powerup_choices = BHPowerups.get_random_choices(3, player.get_weapon_inventory())
 
-	level_up_title.text = "Wybór Ulepszenia"
+	level_up_title.text = "WYBIERZ NARZĘDZIE ZAGŁADY"
 	level_up_subtitle.text = "Poziom %02d  •  wybierz 1 z 3 kart" % current_level
 	level_up_hint.text = "Rozgrywka zatrzymana do momentu wyboru"
 
@@ -529,42 +532,46 @@ func _apply_powerup_from_button(button: Button) -> void:
 
 func _setup_level_up_ui_styles() -> void:
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.035, 0.065, 0.12, 0.97)
-	panel_style.border_width_left = 3
-	panel_style.border_width_top = 3
-	panel_style.border_width_right = 3
-	panel_style.border_width_bottom = 3
-	panel_style.border_color = Color(0.52, 0.74, 0.98, 0.92)
-	panel_style.corner_radius_top_left = 14
-	panel_style.corner_radius_top_right = 14
-	panel_style.corner_radius_bottom_left = 14
-	panel_style.corner_radius_bottom_right = 14
+	panel_style.bg_color = Color(0.018, 0.008, 0.012, 0.985)
+	panel_style.set_border_width_all(4)
+	panel_style.border_color = Color(0.58, 0.06, 0.09, 1.0)
+	panel_style.set_corner_radius_all(0)
+	panel_style.content_margin_left = 34.0
+	panel_style.content_margin_top = 26.0
+	panel_style.content_margin_right = 34.0
+	panel_style.content_margin_bottom = 24.0
+	panel_style.shadow_color = Color(0.62, 0.0, 0.04, 0.42)
+	panel_style.shadow_size = 22
 	level_up_panel.add_theme_stylebox_override("panel", panel_style)
 
-	level_up_title.add_theme_font_size_override("font_size", 42)
+	level_up_title.text = "WYBIERZ NARZĘDZIE ZAGŁADY"
+	level_up_title.add_theme_font_size_override("font_size", 40)
+	level_up_title.add_theme_color_override("font_color", Color(0.96, 0.72, 0.48, 1.0))
+	level_up_title.add_theme_color_override("font_outline_color", Color(0.18, 0.0, 0.01, 1.0))
+	level_up_title.add_theme_constant_override("outline_size", 8)
 	level_up_subtitle.add_theme_font_size_override("font_size", 20)
+	level_up_subtitle.add_theme_color_override("font_color", Color(0.82, 0.54, 0.52, 1.0))
 	level_up_hint.add_theme_font_size_override("font_size", 18)
-	level_up_hint.modulate = Color(0.86, 0.91, 1.0, 0.92)
+	level_up_hint.modulate = Color(0.62, 0.48, 0.5, 0.92)
 	level_up_tokens_label.add_theme_font_size_override("font_size", 19)
-	level_up_tokens_label.modulate = Color(0.94, 0.95, 1.0, 1.0)
+	level_up_tokens_label.modulate = Color(0.9, 0.75, 0.66, 1.0)
 
 	var utility_style := StyleBoxFlat.new()
-	utility_style.bg_color = Color(0.15, 0.16, 0.21, 1.0)
-	utility_style.border_color = Color(0.72, 0.74, 0.84, 1.0)
-	utility_style.border_width_left = 2
-	utility_style.border_width_top = 2
-	utility_style.border_width_right = 2
-	utility_style.border_width_bottom = 2
-	utility_style.corner_radius_top_left = 8
-	utility_style.corner_radius_top_right = 8
-	utility_style.corner_radius_bottom_left = 8
-	utility_style.corner_radius_bottom_right = 8
+	utility_style.bg_color = Color(0.08, 0.025, 0.035, 1.0)
+	utility_style.border_color = Color(0.48, 0.1, 0.13, 1.0)
+	utility_style.set_border_width_all(2)
+	utility_style.set_corner_radius_all(0)
 	reroll_button.add_theme_stylebox_override("normal", utility_style)
 	skip_button.add_theme_stylebox_override("normal", utility_style)
-	reroll_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
-	skip_button.add_theme_stylebox_override("hover", utility_style.duplicate() as StyleBoxFlat)
-	reroll_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4, 1.0))
-	skip_button.add_theme_color_override("font_color", Color(0.56, 0.82, 1.0, 1.0))
+	var utility_hover := utility_style.duplicate() as StyleBoxFlat
+	utility_hover.bg_color = Color(0.3, 0.055, 0.075, 1.0)
+	utility_hover.border_color = Color(0.95, 0.34, 0.28, 1.0)
+	reroll_button.add_theme_stylebox_override("hover", utility_hover)
+	skip_button.add_theme_stylebox_override("hover", utility_hover)
+	reroll_button.add_theme_stylebox_override("focus", utility_hover)
+	skip_button.add_theme_stylebox_override("focus", utility_hover)
+	reroll_button.add_theme_color_override("font_color", Color(1.0, 0.72, 0.38, 1.0))
+	skip_button.add_theme_color_override("font_color", Color(0.92, 0.48, 0.44, 1.0))
 
 func _format_powerup_card_text(powerup_id: int) -> String:
 	var name := BHPowerups.get_powerup_name(powerup_id)
@@ -588,7 +595,9 @@ func _format_powerup_card_text(powerup_id: int) -> String:
 	return "%s\n%s\n\n%s" % [name.to_upper(), kind_label, desc]
 
 func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
-	button.custom_minimum_size = Vector2(250.0, 290.0)
+	button.custom_minimum_size = Vector2(270.0, 310.0)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.size_flags_stretch_ratio = 1.0
 	button.text = ""
 	button.icon = null
 	button.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -604,39 +613,38 @@ func _apply_choice_button_style(button: Button, powerup_id: int) -> void:
 
 	var data := BHPowerups.get_powerup_data(powerup_id)
 	var kind := String(data.get("kind", ""))
-	var border_color := Color(0.55, 0.7, 1.0, 1.0)
-	var fill_color := Color(0.09, 0.11, 0.15, 1.0)
+	var border_color := Color(0.58, 0.12, 0.14, 1.0)
+	var fill_color := Color(0.055, 0.018, 0.025, 1.0)
 	match kind:
 		"weapon":
-			border_color = Color(0.98, 0.68, 0.28, 1.0)
-			fill_color = Color(0.16, 0.11, 0.09, 1.0)
+			border_color = Color(0.9, 0.23, 0.19, 1.0)
+			fill_color = Color(0.12, 0.025, 0.03, 1.0)
 		"speed":
-			border_color = Color(0.33, 0.9, 0.62, 1.0)
-			fill_color = Color(0.08, 0.16, 0.14, 1.0)
+			border_color = Color(0.72, 0.18, 0.24, 1.0)
+			fill_color = Color(0.085, 0.02, 0.04, 1.0)
 		"shield":
-			border_color = Color(0.42, 0.78, 1.0, 1.0)
-			fill_color = Color(0.08, 0.12, 0.17, 1.0)
+			border_color = Color(0.95, 0.48, 0.28, 1.0)
+			fill_color = Color(0.11, 0.035, 0.025, 1.0)
 
 	var normal_style := StyleBoxFlat.new()
 	normal_style.bg_color = fill_color
 	normal_style.border_color = border_color
-	normal_style.border_width_left = 2
-	normal_style.border_width_top = 2
-	normal_style.border_width_right = 2
-	normal_style.border_width_bottom = 2
-	normal_style.corner_radius_top_left = 10
-	normal_style.corner_radius_top_right = 10
-	normal_style.corner_radius_bottom_left = 10
-	normal_style.corner_radius_bottom_right = 10
+	normal_style.set_border_width_all(3)
+	normal_style.set_corner_radius_all(0)
+	normal_style.shadow_color = Color(0.7, 0.0, 0.04, 0.25)
+	normal_style.shadow_size = 8
 
 	var hover_style := normal_style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = fill_color.lightened(0.12)
+	hover_style.bg_color = Color(0.25, 0.035, 0.045, 1.0)
+	hover_style.border_color = Color(1.0, 0.42, 0.25, 1.0)
+	hover_style.set_border_width_all(4)
 
 	var pressed_style := normal_style.duplicate() as StyleBoxFlat
 	pressed_style.bg_color = fill_color.darkened(0.14)
 
 	button.add_theme_stylebox_override("normal", normal_style)
 	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("focus", hover_style)
 	button.add_theme_stylebox_override("pressed", pressed_style)
 	button.add_theme_color_override("font_color", Color(0.97, 0.98, 1.0, 1.0))
 
@@ -647,11 +655,11 @@ func _populate_choice_button_content(button: Button, powerup_id: int) -> void:
 		content.name = "CardContent"
 		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		content.add_theme_constant_override("separation", 8)
-		content.add_theme_constant_override("margin_left", 14)
-		content.add_theme_constant_override("margin_top", 14)
-		content.add_theme_constant_override("margin_right", 14)
-		content.add_theme_constant_override("margin_bottom", 14)
+		content.offset_left = 18.0
+		content.offset_top = 18.0
+		content.offset_right = -18.0
+		content.offset_bottom = -18.0
+		content.add_theme_constant_override("separation", 10)
 		button.add_child(content)
 
 	var icon := content.get_node_or_null("Icon") as TextureRect
@@ -672,6 +680,9 @@ func _populate_choice_button_content(button: Button, powerup_id: int) -> void:
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		title.add_theme_font_size_override("font_size", 20)
+		title.add_theme_color_override("font_color", Color(1.0, 0.78, 0.58, 1.0))
+		title.add_theme_color_override("font_outline_color", Color(0.18, 0.0, 0.01, 1.0))
+		title.add_theme_constant_override("outline_size", 5)
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(title)
 
@@ -683,7 +694,7 @@ func _populate_choice_button_content(button: Button, powerup_id: int) -> void:
 		details.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		details.add_theme_font_size_override("font_size", 15)
-		details.modulate = Color(0.92, 0.95, 1.0, 0.96)
+		details.modulate = Color(0.86, 0.72, 0.7, 0.96)
 		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		details.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(details)
@@ -945,7 +956,9 @@ func _spawn_stage_obstacles() -> void:
 		obstacle_container.add_child(pigeon_right_mid)
 
 func _spawn_stage2_placeholder_obstacles() -> void:
-	var square_texture := _get_placeholder_square_texture()
+	var pigeon_texture: Texture2D = _load_texture(pigeon_texture_path)
+	if pigeon_texture == null:
+		return
 	var world_center := play_area_rect.get_center()
 	var offsets: Array[Vector2] = [
 		Vector2(0.0, -180.0),
@@ -954,19 +967,12 @@ func _spawn_stage2_placeholder_obstacles() -> void:
 		Vector2(-120.0, 220.0),
 		Vector2(120.0, 220.0),
 	]
-	for offset in offsets:
-		var square = BHObstacleScript.new()
-		square.setup(square_texture, 18.0, 3.0)
-		square.position = world_center + offset
-		obstacle_container.add_child(square)
-
-func _get_placeholder_square_texture() -> Texture2D:
-	if placeholder_square_texture != null:
-		return placeholder_square_texture
-	var image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	image.fill(Color.WHITE)
-	placeholder_square_texture = ImageTexture.create_from_image(image)
-	return placeholder_square_texture
+	for index in offsets.size():
+		var pigeon = BHObstacleScript.new()
+		pigeon.setup(pigeon_texture, 24.0, 2.2, 4, 1, 4, 8.0)
+		pigeon.set_visual_flip_h(index % 2 == 1)
+		pigeon.position = world_center + offsets[index]
+		obstacle_container.add_child(pigeon)
 
 func _apply_initial_run_state() -> void:
 	if initial_run_state.is_empty():

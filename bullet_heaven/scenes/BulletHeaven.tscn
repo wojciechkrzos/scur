@@ -188,16 +188,16 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -430.0
-offset_top = -300.0
-offset_right = 430.0
-offset_bottom = 300.0
+offset_left = -500.0
+offset_top = -340.0
+offset_right = 500.0
+offset_bottom = 340.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="LevelUpVBox" type="VBoxContainer" parent="LevelUpLayer/LevelUpPanel" unique_id=865983442]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 16
 
 [node name="LevelUpTitle" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=200387801]
 layout_mode = 2
@@ -211,29 +211,38 @@ horizontal_alignment = 1
 
 [node name="ChoiceRow" type="HBoxContainer" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1205547846]
 layout_mode = 2
-theme_override_constants/separation = 14
+size_flags_vertical = 3
+theme_override_constants/separation = 22
+alignment = 1
 
 [node name="ChoiceButton1" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=278710398]
-custom_minimum_size = Vector2(230, 250)
+custom_minimum_size = Vector2(270, 310)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
 text = "Ulepszenie 1"
 autowrap_mode = 3
 
 [node name="ChoiceButton2" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=1152640106]
-custom_minimum_size = Vector2(230, 250)
+custom_minimum_size = Vector2(270, 310)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
 text = "Ulepszenie 2"
 autowrap_mode = 3
 
 [node name="ChoiceButton3" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/ChoiceRow" unique_id=2036787672]
-custom_minimum_size = Vector2(230, 250)
+custom_minimum_size = Vector2(270, 310)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
 text = "Ulepszenie 3"
 autowrap_mode = 3
 
 [node name="TokenRow" type="HBoxContainer" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox" unique_id=1360008001]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
+alignment = 1
 
 [node name="TokenLabel" type="Label" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow" unique_id=1254599182]
 layout_mode = 2
@@ -241,12 +250,12 @@ size_flags_horizontal = 3
 text = "Tokeny: Reroll 1  •  Skip 1"
 
 [node name="RerollButton" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow" unique_id=846486788]
-custom_minimum_size = Vector2(120, 0)
+custom_minimum_size = Vector2(150, 46)
 layout_mode = 2
 text = "Reroll"
 
 [node name="SkipButton" type="Button" parent="LevelUpLayer/LevelUpPanel/LevelUpVBox/TokenRow" unique_id=1272838260]
-custom_minimum_size = Vector2(120, 0)
+custom_minimum_size = Vector2(150, 46)
 layout_mode = 2
 text = "Skip"
 

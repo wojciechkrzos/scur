@@ -1,6 +1,7 @@
 extends Area2D
 
 signal player_died
+signal player_hit(remaining_lives: int)
 signal shot_spawned(shot: Node2D)
 signal experience_changed(current_xp: int, current_level: int, xp_to_next: int)
 signal leveled_up(new_level: int)
@@ -220,6 +221,7 @@ func take_hit() -> void:
 	if is_invincible or not is_alive:
 		return
 	lives -= 1
+	player_hit.emit(maxi(lives, 0))
 	if lives <= 0:
 		is_alive = false
 		visible = false

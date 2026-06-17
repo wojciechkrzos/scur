@@ -17,6 +17,9 @@ const BHPowerups = preload("res://bullet_heaven/scripts/BHPowerups.gd")
 @onready var result_label: Label = $ResultLabel
 
 var result_dimmer: ColorRect
+var damage_border: Panel
+var result_left_line: ColorRect
+var result_right_line: ColorRect
 var stage_number: int = 1
 
 func _ready() -> void:
@@ -28,6 +31,8 @@ func _ready() -> void:
 	result_dimmer.visible = false
 	add_child(result_dimmer)
 	move_child(result_dimmer, 0)
+	_setup_damage_border()
+	_setup_result_presentation()
 
 func setup(duration: float, lives: int, stage_profile: String = "stage1") -> void:
 	stage_number = clampi(int(stage_profile.trim_prefix("stage")), 1, 3)
@@ -40,6 +45,10 @@ func setup(duration: float, lives: int, stage_profile: String = "stage1") -> voi
 	result_label.visible = false
 	if result_dimmer != null:
 		result_dimmer.visible = false
+	if result_left_line != null:
+		result_left_line.visible = false
+	if result_right_line != null:
+		result_right_line.visible = false
 
 func update_lives(count: int) -> void:
 	lives_label.text = "ŻYCIA  " + "♥ ".repeat(maxi(count, 0))
@@ -105,11 +114,76 @@ func show_result(result: String) -> void:
 	if result_dimmer != null:
 		result_dimmer.visible = true
 	if result == "win":
-		result_label.text = "✦ ZWYCIĘSTWO ✦"
+		result_label.text = "ZWYCIĘSTWO"
 		result_label.modulate = Color(0.5, 1.0, 0.5)
 	else:
-		result_label.text = "✦ DERATYZACJA ✦"
+		result_label.text = "DERATYZACJA"
 		result_label.modulate = Color(1.0, 0.4, 0.4)
+	result_left_line.visible = true
+	result_right_line.visible = true
+	result_label.modulate.a = 0.0
+	result_label.scale = Vector2(0.82, 0.82)
+	result_label.pivot_offset = result_label.size * 0.5
+	result_left_line.modulate.a = 0.0
+	result_right_line.modulate.a = 0.0
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(result_label, "modulate:a", 1.0, 0.55)
+	tween.tween_property(result_label, "scale", Vector2.ONE, 0.65).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(result_left_line, "modulate:a", 1.0, 0.45).set_delay(0.15)
+	tween.tween_property(result_right_line, "modulate:a", 1.0, 0.45).set_delay(0.15)
+
+func play_damage_feedback() -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.play_player_hit()
+	if damage_border == null:
+		return
+	damage_border.visible = true
+	damage_border.modulate.a = 1.0
+	var tween := create_tween()
+	tween.tween_property(damage_border, "modulate:a", 0.0, 0.48).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(func(): damage_border.visible = false)
+
+func _setup_damage_border() -> void:
+	damage_border = Panel.new()
+	damage_border.name = "DamageBorder"
+	damage_border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	damage_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.42, 0.0, 0.0, 0.10)
+	style.border_color = Color(1.0, 0.02, 0.03, 0.95)
+	style.set_border_width_all(22)
+	style.shadow_color = Color(1.0, 0.0, 0.0, 0.65)
+	style.shadow_size = 28
+	damage_border.add_theme_stylebox_override("panel", style)
+	damage_border.visible = false
+	add_child(damage_border)
+
+func _setup_result_presentation() -> void:
+	result_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	result_label.add_theme_font_size_override("font_size", 64)
+	result_label.add_theme_color_override("font_outline_color", Color(0.02, 0.0, 0.0, 1.0))
+	result_label.add_theme_constant_override("outline_size", 14)
+	result_left_line = _make_result_line()
+	result_right_line = _make_result_line()
+	result_left_line.anchor_left = 0.08
+	result_left_line.anchor_right = 0.42
+	result_right_line.anchor_left = 0.58
+	result_right_line.anchor_right = 0.92
+	add_child(result_left_line)
+	add_child(result_right_line)
+	move_child(result_label, get_child_count() - 1)
+
+func _make_result_line() -> ColorRect:
+	var line := ColorRect.new()
+	line.anchor_top = 0.5
+	line.anchor_bottom = 0.5
+	line.offset_top = -2.0
+	line.offset_bottom = 2.0
+	line.color = Color(0.76, 0.58, 0.32, 0.9)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.visible = false
+	return line
 
 func _setup_styles() -> void:
 	status_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.28, 0.82, 0.68)))
